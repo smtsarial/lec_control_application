@@ -70,7 +70,8 @@ void main() {
             primarySwatch: Colors.blue,
             scaffoldBackgroundColor: _themeColor),
         home: const DefaultTextStyle(
-          style: const TextStyle(fontFamily: 'Roboto'),
+          style: const TextStyle(
+              fontFamily: 'Roboto', fontWeight: FontWeight.w900),
           child: const HomeScreen(),
         ),
       ),

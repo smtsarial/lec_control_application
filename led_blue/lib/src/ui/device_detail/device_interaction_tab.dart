@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:functional_data/functional_data.dart';
 import 'package:led_blue/src/ble/ble_device_connector.dart';
@@ -88,65 +89,96 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
     setState(() {
       discoveredServices = result;
     });
+  } // create some values
+
+  Color pickerColor = Color(0xff443a49);
+  Color currentColor = Color(0xff443a49);
+
+// ValueChanged<Color> callback
+  void changeColor(Color color) {
+    setState(() => pickerColor = color);
   }
 
   @override
-  Widget build(BuildContext context) => CustomScrollView(
-        slivers: [
-          SliverList(
-            delegate: SliverChildListDelegate.fixed(
-              [
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(
-                      top: 8.0, bottom: 16.0, start: 16.0),
-                  child: Text(
-                    "ID: ${widget.viewModel.deviceId}",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        SliverList(
+          delegate: SliverChildListDelegate.fixed(
+            [
+              Padding(
+                padding:
+                    const EdgeInsetsDirectional.only(top: 8.0, bottom: 16.0),
+                child: Text(
+                  "FABRE",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(start: 16.0),
-                  child: Text(
-                    "Status: ${widget.viewModel.connectionStatus}",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+              ),
+              // Padding(
+              //   padding: const EdgeInsetsDirectional.only(start: 16.0),
+              //   child: Text(
+              //     "Status: ${widget.viewModel.connectionStatus}",
+              //     style: const TextStyle(fontWeight: FontWeight.bold),
+              //   ),
+              // ),
+              ColorPicker(
+                pickerColor: pickerColor,
+                onColorChanged: changeColor,
+                colorPickerWidth: 300,
+                enableAlpha: false,
+                labelTypes: [],
+                displayThumbColor: false,
+                paletteType: PaletteType.hueWheel,
+                pickerAreaBorderRadius: const BorderRadius.only(
+                  topLeft: const Radius.circular(2.0),
+                  topRight: const Radius.circular(2.0),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                      ElevatedButton(
-                        onPressed: !widget.viewModel.deviceConnected
-                            ? widget.viewModel.connect
-                            : null,
-                        child: const Text("Connect"),
-                      ),
-                      ElevatedButton(
-                        onPressed: widget.viewModel.deviceConnected
-                            ? widget.viewModel.disconnect
-                            : null,
-                        child: const Text("Disconnect"),
-                      ),
-                      ElevatedButton(
-                        onPressed: widget.viewModel.deviceConnected
-                            ? discoverServices
-                            : null,
-                        child: const Text("Discover Services"),
-                      ),
-                    ],
-                  ),
+                hexInputBar: false,
+                colorHistory: [],
+                showLabel: false,
+              ),
+
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: <Widget>[
+                    ElevatedButton(
+                      onPressed: !widget.viewModel.deviceConnected
+                          ? widget.viewModel.connect
+                          : null,
+                      child: const Text("Connect"),
+                    ),
+                    ElevatedButton(
+                      onPressed: widget.viewModel.deviceConnected
+                          ? widget.viewModel.disconnect
+                          : null,
+                      child: const Text("Disconnect"),
+                    ),
+                    ElevatedButton(
+                      onPressed: widget.viewModel.deviceConnected
+                          ? discoverServices
+                          : null,
+                      child: const Text("Discover Services"),
+                    ),
+                  ],
                 ),
-                if (widget.viewModel.deviceConnected)
-                  _ServiceDiscoveryList(
-                    deviceId: widget.viewModel.deviceId,
-                    discoveredServices: discoveredServices,
-                  ),
-              ],
-            ),
+              ),
+              if (widget.viewModel.deviceConnected)
+                _ServiceDiscoveryList(
+                  deviceId: widget.viewModel.deviceId,
+                  discoveredServices: discoveredServices,
+                ),
+            ],
           ),
-        ],
-      );
+        ),
+      ],
+    );
+  }
 }
 
 class _ServiceDiscoveryList extends StatefulWidget {
@@ -218,6 +250,7 @@ class _ServiceDiscoveryListState extends State<_ServiceDiscoveryList> {
     widget.discoveredServices.asMap().forEach(
           (index, service) => panels.add(
             ExpansionPanel(
+              backgroundColor: Colors.grey,
               body: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,

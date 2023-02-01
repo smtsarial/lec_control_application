@@ -31,9 +31,15 @@ class BleScanner implements ReactiveState<BleScannerState> {
       if (knownDeviceIndex >= 0) {
         _devices[knownDeviceIndex] = device;
       } else {
-        _devices.add(device);
+        //if name not contains 'MELK' remove from list _devices
+        if (device.name.contains('Mac')) {
+          _devices.add(device);
+        }
       }
       print(device.name);
+
+      //if name contains 'MELK' add to list _devices
+
       _pushState();
     }, onError: (Object e) => _logMessage('Device scan fails with error: $e'));
     _pushState();

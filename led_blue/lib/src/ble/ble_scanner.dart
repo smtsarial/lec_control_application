@@ -25,14 +25,15 @@ class BleScanner implements ReactiveState<BleScannerState> {
     _logMessage('Start ble discovery');
     _devices.clear();
     _subscription?.cancel();
-    _subscription =
-        _ble.scanForDevices(withServices: serviceIds).listen((device) {
+    print(Uuid.parse('fff3'));
+    _subscription = _ble.scanForDevices(withServices: []).listen((device) {
       final knownDeviceIndex = _devices.indexWhere((d) => d.id == device.id);
       if (knownDeviceIndex >= 0) {
         _devices[knownDeviceIndex] = device;
       } else {
         _devices.add(device);
       }
+      print(device.name);
       _pushState();
     }, onError: (Object e) => _logMessage('Device scan fails with error: $e'));
     _pushState();

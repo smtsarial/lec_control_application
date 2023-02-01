@@ -32,7 +32,7 @@ class BleScanner implements ReactiveState<BleScannerState> {
         _devices[knownDeviceIndex] = device;
       } else {
         //if name not contains 'MELK' remove from list _devices
-        if (device.name.contains('Mac')) {
+        if (device.name.contains('MELK')) {
           _devices.add(device);
         }
       }

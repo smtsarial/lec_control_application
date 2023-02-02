@@ -30,14 +30,59 @@ class _DeviceDetail extends StatelessWidget {
   final DiscoveredDevice device;
   final void Function(String deviceId) disconnect;
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          title: Text(device.name),
-        ),
-        body: DeviceInteractionTab(
-          device: device,
+  Widget build(BuildContext context) => WillPopScope(
+        onWillPop: () async {
+          disconnect(device.id);
+          return true;
+        },
+        child: DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              title: Text(device.name),
+            ),
+            bottomNavigationBar: tabBarNav(),
+            body: TabBarView(
+              children: [
+                DeviceInteractionTab(
+                  device: device,
+                ),
+                const DeviceLogTab(),
+              ],
+            ),
+          ),
         ),
       );
+
+  Widget tabBarNav() {
+    return TabBar(
+      labelColor: Colors.white,
+      unselectedLabelColor: Colors.white,
+      indicatorSize: TabBarIndicatorSize.tab,
+      indicator: BoxDecoration(
+          gradient:
+              LinearGradient(colors: [Color(0xFF2F80ED), Color(0xFF2F80ED)]),
+          borderRadius: BorderRadius.circular(50),
+          color: Colors.black),
+      tabs: [
+        Tab(
+          text: 'FARBE',
+        ),
+        Tab(
+          text: 'MODI',
+        ),
+        Tab(
+          text: 'TÖNE',
+        ),
+        Tab(
+          text: 'MIC',
+        ),
+        Tab(
+          text: 'TIMER',
+        ),
+      ],
+    );
+  }
 }

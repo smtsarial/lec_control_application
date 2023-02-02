@@ -158,8 +158,7 @@ class _CharacteristicInteractionDialogState
 
   List<Widget> get readSection => [
         sectionHeader('Read characteristic'),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Column(
           children: [
             ElevatedButton(
               onPressed: readCharacteristic,

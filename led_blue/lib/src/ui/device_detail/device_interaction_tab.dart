@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
@@ -86,6 +88,7 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
 
   Future<void> discoverServices() async {
     final result = await widget.viewModel.discoverServices();
+
     setState(() {
       discoveredServices = result;
     });
@@ -93,6 +96,42 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
 
   Color pickerColor = Color(0xff443a49);
   Color currentColor = Color(0xff443a49);
+
+  //add type
+  List<Map<String, dynamic>> favColors = [
+    {
+      'color': Color(0xffEB5757),
+      'selected': false,
+    },
+    {
+      'color': Color(0xffF2994A),
+      'selected': false,
+    },
+    {
+      'color': Color(0xffF2C94C),
+      'selected': false,
+    },
+    {
+      'color': Color(0xff219653),
+      'selected': true,
+    },
+    {
+      'color': Color(0xff6FCF97),
+      'selected': false,
+    },
+    {
+      'color': Color(0xffBB6BD9),
+      'selected': false,
+    },
+    {
+      'color': Color(0xff6FCF97),
+      'selected': false,
+    },
+    {
+      'color': Color(0xffed1c24),
+      'selected': false,
+    },
+  ];
 
 // ValueChanged<Color> callback
   void changeColor(Color color) {
@@ -118,6 +157,25 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                   ),
                 ),
               ),
+
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: writeValue('1', true),
+                      child: const Text("Open Led"),
+                    ),
+                    ElevatedButton(
+                      onPressed: widget.viewModel.deviceConnected
+                          ? widget.viewModel.disconnect
+                          : null,
+                      child: const Text("Close Led"),
+                    ),
+                  ],
+                ),
+              ),
               // Padding(
               //   padding: const EdgeInsetsDirectional.only(start: 16.0),
               //   child: Text(
@@ -141,7 +199,81 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                 colorHistory: [],
                 showLabel: false,
               ),
+              Text(
+                'Favs',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  //listview builder for colors in favColors list
+                  for (var i = 0; i < favColors.length; i++)
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          favColors[i]['selected'] = true;
+                          for (var j = 0; j < favColors.length; j++) {
+                            if (j != i) {
+                              favColors[j]['selected'] = false;
+                            }
+                          }
+                        });
+                      },
+                      child: Container(
+                        margin: EdgeInsets.symmetric(horizontal: 5),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(50),
+                          color: favColors[i]['color'],
+                        ),
+                        width: 45,
+                        height: favColors[i]['selected'] ? 100 : 75,
+                      ),
+                    )
+                ]),
+              ),
 
+              Text(
+                'Basic Colors',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  //listview builder for colors in favColors list
+                  for (var i = 0; i < favColors.length; i++)
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          favColors[i]['selected'] = true;
+                          for (var j = 0; j < favColors.length; j++) {
+                            if (j != i) {
+                              favColors[j]['selected'] = false;
+                            }
+                          }
+                        });
+                      },
+                      child: Container(
+                        margin: EdgeInsets.symmetric(horizontal: 5),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(50),
+                          color: favColors[i]['color'],
+                        ),
+                        width: favColors[i]['selected'] ? 55 : 45,
+                        height: favColors[i]['selected'] ? 50 : 40,
+                      ),
+                    )
+                ]),
+              ),
               Padding(
                 padding: const EdgeInsets.only(top: 16.0),
                 child: Row(
@@ -178,6 +310,10 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
         ),
       ],
     );
+  }
+
+  writeValue(String characteristic, bool ledStatus) {
+    //write static
   }
 }
 
@@ -230,12 +366,15 @@ class _ServiceDiscoveryListState extends State<_ServiceDiscoveryList> {
       ListTile(
         onTap: () => showDialog<void>(
             context: context,
-            builder: (context) => CharacteristicInteractionDialog(
+            builder: (context) => Theme(
+                data: Theme.of(context).copyWith(
+                    dialogBackgroundColor: Color.fromARGB(255, 16, 17, 18)),
+                child: CharacteristicInteractionDialog(
                   characteristic: QualifiedCharacteristic(
                       characteristicId: characteristic.characteristicId,
                       serviceId: characteristic.serviceId,
                       deviceId: deviceId),
-                )),
+                ))),
         title: Text(
           '${characteristic.characteristicId}\n(${_charactisticsSummary(characteristic)})',
           style: const TextStyle(

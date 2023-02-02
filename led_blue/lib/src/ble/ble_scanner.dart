@@ -25,14 +25,13 @@ class BleScanner implements ReactiveState<BleScannerState> {
     _logMessage('Start ble discovery');
     _devices.clear();
     _subscription?.cancel();
-    print(Uuid.parse('fff3'));
     _subscription = _ble.scanForDevices(withServices: []).listen((device) {
       final knownDeviceIndex = _devices.indexWhere((d) => d.id == device.id);
       if (knownDeviceIndex >= 0) {
         _devices[knownDeviceIndex] = device;
       } else {
         //if name not contains 'MELK' remove from list _devices
-        if (device.name.contains('MELK')) {
+        if (device.name.contains('')) {
           _devices.add(device);
         }
       }

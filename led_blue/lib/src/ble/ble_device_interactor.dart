@@ -73,6 +73,7 @@ class BleDeviceInteractor {
   Future<void> writeCharacterisiticWithResponse(
       QualifiedCharacteristic characteristic, List<int> value) async {
     try {
+      print('object');
       _logMessage(
           'Write with response value : $value to ${characteristic.characteristicId}');
       await _writeWithResponse(characteristic, value: value);

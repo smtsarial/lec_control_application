@@ -13,18 +13,20 @@ abstract class $DeviceInteractionViewModel {
   DeviceConnectionState get connectionStatus;
   BleDeviceConnector get deviceConnector;
   Future<List<DiscoveredService>> Function() get discoverServices;
+  BleDeviceInteractor get service;
 
-  DeviceInteractionViewModel copyWith({
-    String? deviceId,
-    DeviceConnectionState? connectionStatus,
-    BleDeviceConnector? deviceConnector,
-    Future<List<DiscoveredService>> Function()? discoverServices,
-  }) =>
+  DeviceInteractionViewModel copyWith(
+          {String? deviceId,
+          DeviceConnectionState? connectionStatus,
+          BleDeviceConnector? deviceConnector,
+          Future<List<DiscoveredService>> Function()? discoverServices,
+          BleDeviceInteractor? service}) =>
       DeviceInteractionViewModel(
         deviceId: deviceId ?? this.deviceId,
         connectionStatus: connectionStatus ?? this.connectionStatus,
         deviceConnector: deviceConnector ?? this.deviceConnector,
         discoverServices: discoverServices ?? this.discoverServices,
+        service: service ?? this.service,
       );
 
   DeviceInteractionViewModel copyUsing(
@@ -41,6 +43,7 @@ abstract class $DeviceInteractionViewModel {
       connectionStatus: change.connectionStatus,
       deviceConnector: change.deviceConnector,
       discoverServices: change.discoverServices,
+      service: this.service,
     );
   }
 

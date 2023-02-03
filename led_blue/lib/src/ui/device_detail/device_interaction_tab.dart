@@ -1,4 +1,5 @@
 import 'dart:ffi';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -24,13 +25,14 @@ class DeviceInteractionTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Consumer3<BleDeviceConnector, ConnectionStateUpdate, BleDeviceInteractor>(
-        builder: (_, deviceConnector, connectionStateUpdate, serviceDiscoverer,
-                __) =>
+        builder: (context, deviceConnector, connectionStateUpdate,
+                serviceDiscoverer, __) =>
             _DeviceInteractionTab(
           viewModel: DeviceInteractionViewModel(
               deviceId: device.id,
               connectionStatus: connectionStateUpdate.connectionState,
               deviceConnector: deviceConnector,
+              service: serviceDiscoverer,
               discoverServices: () =>
                   serviceDiscoverer.discoverServices(device.id)),
         ),
@@ -45,19 +47,23 @@ class DeviceInteractionViewModel extends $DeviceInteractionViewModel {
     required this.connectionStatus,
     required this.deviceConnector,
     required this.discoverServices,
+    required this.service,
   });
 
   final String deviceId;
   final DeviceConnectionState connectionStatus;
   final BleDeviceConnector deviceConnector;
+  final BleDeviceInteractor service;
+
   @CustomEquality(Ignore())
   final Future<List<DiscoveredService>> Function() discoverServices;
 
   bool get deviceConnected =>
       connectionStatus == DeviceConnectionState.connected;
 
-  void connect() {
-    deviceConnector.connect(deviceId);
+  Future<void> connect() async {
+    print('connected');
+    await deviceConnector.connect(deviceId);
   }
 
   void disconnect() {
@@ -78,21 +84,83 @@ class _DeviceInteractionTab extends StatefulWidget {
 }
 
 class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
-  late List<DiscoveredService> discoveredServices;
+  List<DiscoveredService> discoveredServices = [];
 
   @override
   void initState() {
-    discoveredServices = [];
+    try {
+      initilize();
+    } catch (e) {
+      print(e);
+    }
+
     super.initState();
   }
 
-  Future<void> discoverServices() async {
+  initilize() async {
+    await widget.viewModel.connect().then((value) async {
+      //discoverServices();
+    });
+  }
+
+  Future<List<DiscoveredService>> discoverServices() async {
     final result = await widget.viewModel.discoverServices();
 
     setState(() {
       discoveredServices = result;
     });
-  } // create some values
+    return result;
+  }
+
+  ledOff() async {
+    print('led off');
+    List<DiscoveredService> data = await discoverServices();
+    for (var i = 0; i < discoveredServices.length; i++) {
+      for (var j = 0; j < discoveredServices[i].characteristics.length; j++) {
+        //check uuid of characteristic and write value
+        DiscoveredCharacteristic characteristic =
+            discoveredServices[i].characteristics[j];
+
+        print('led off2');
+        if (characteristic.characteristicId.toString().contains('fff3')) {
+          print(characteristic.characteristicId.toString());
+          //write value to characteristic with id
+          QualifiedCharacteristic data = QualifiedCharacteristic(
+              serviceId: discoveredServices[i].serviceId,
+              characteristicId: characteristic.characteristicId,
+              deviceId: widget.viewModel.deviceId);
+          await widget.viewModel.service.writeCharacterisiticWithoutResponse(
+              data,
+              [126, 4, 4, 240, 0, 0, 256, 0, 239, 51, 51, 51, 51, 51, 51, 51]);
+        }
+      }
+    }
+  }
+
+  ledOn() async {
+    print('led on');
+    List<DiscoveredService> data = await discoverServices();
+    for (var i = 0; i < discoveredServices.length; i++) {
+      for (var j = 0; j < discoveredServices[i].characteristics.length; j++) {
+        //check uuid of characteristic and write value
+        DiscoveredCharacteristic characteristic =
+            discoveredServices[i].characteristics[j];
+
+        print('led on 2');
+        if (characteristic.characteristicId.toString().contains('fff3')) {
+          print(characteristic.characteristicId.toString());
+          //write value to characteristic with id
+          QualifiedCharacteristic data = QualifiedCharacteristic(
+              serviceId: discoveredServices[i].serviceId,
+              characteristicId: characteristic.characteristicId,
+              deviceId: widget.viewModel.deviceId);
+          await widget.viewModel.service.writeCharacterisiticWithoutResponse(
+              data,
+              [126, 4, 4, 0, 0, 0, 256, 0, 239, 51, 51, 51, 51, 51, 51, 51]);
+        }
+      }
+    }
+  }
 
   Color pickerColor = Color(0xff443a49);
   Color currentColor = Color(0xff443a49);
@@ -164,13 +232,15 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     ElevatedButton(
-                      onPressed: writeValue('1', true),
+                      onPressed: () {
+                        ledOn();
+                      },
                       child: const Text("Open Led"),
                     ),
                     ElevatedButton(
-                      onPressed: widget.viewModel.deviceConnected
-                          ? widget.viewModel.disconnect
-                          : null,
+                      onPressed: () {
+                        ledOff();
+                      },
                       child: const Text("Close Led"),
                     ),
                   ],
@@ -300,20 +370,15 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                   ],
                 ),
               ),
-              if (widget.viewModel.deviceConnected)
-                _ServiceDiscoveryList(
-                  deviceId: widget.viewModel.deviceId,
-                  discoveredServices: discoveredServices,
-                ),
+              _ServiceDiscoveryList(
+                deviceId: widget.viewModel.deviceId,
+                discoveredServices: discoveredServices,
+              ),
             ],
           ),
         ),
       ],
     );
-  }
-
-  writeValue(String characteristic, bool ledStatus) {
-    //write static
   }
 }
 

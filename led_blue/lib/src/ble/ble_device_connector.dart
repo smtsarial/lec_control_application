@@ -23,7 +23,7 @@ class BleDeviceConnector extends ReactiveState<ConnectionStateUpdate> {
 
   Future<void> connect(String deviceId) async {
     _logMessage('Start connecting to $deviceId');
-    _connection = _ble.connectToDevice(id: deviceId).listen(
+    _connection = await _ble.connectToDevice(id: deviceId).listen(
       (update) {
         _logMessage(
             'ConnectionState for device $deviceId : ${update.connectionState}');

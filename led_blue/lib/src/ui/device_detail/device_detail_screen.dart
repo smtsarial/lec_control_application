@@ -39,6 +39,7 @@ class _DeviceDetail extends StatelessWidget {
           length: 2,
           child: Scaffold(
             appBar: AppBar(
+              actions: [],
               backgroundColor: Colors.transparent,
               elevation: 0,
               title: Text(device.name),

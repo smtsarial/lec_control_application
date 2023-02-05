@@ -1,6 +1,7 @@
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
@@ -85,6 +86,8 @@ class _DeviceInteractionTab extends StatefulWidget {
 
 class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
   List<DiscoveredService> discoveredServices = [];
+  bool isOn = false;
+  double _brightness = 0.0;
 
   @override
   void initState() {
@@ -114,56 +117,46 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
 
   ledOff() async {
     print('led off');
-    List<DiscoveredService> data = await discoverServices();
-    for (var i = 0; i < discoveredServices.length; i++) {
-      for (var j = 0; j < discoveredServices[i].characteristics.length; j++) {
-        //check uuid of characteristic and write value
-        DiscoveredCharacteristic characteristic =
-            discoveredServices[i].characteristics[j];
 
-        print('led off2');
-        if (characteristic.characteristicId.toString().contains('fff3')) {
-          print(characteristic.characteristicId.toString());
-          //write value to characteristic with id
-          QualifiedCharacteristic data = QualifiedCharacteristic(
-              serviceId: discoveredServices[i].serviceId,
-              characteristicId: characteristic.characteristicId,
-              deviceId: widget.viewModel.deviceId);
-          await widget.viewModel.service.writeCharacterisiticWithoutResponse(
-              data,
-              [126, 4, 4, 240, 0, 0, 256, 0, 239, 51, 51, 51, 51, 51, 51, 51]);
-        }
+    await writeToDevice(
+            [126, 4, 4, 0, 0, 0, 256, 0, 239, 51, 51, 51, 51, 51, 51, 51])
+        .then((value) {
+      if (value) {
+        print('led off success');
+        setState(() {
+          isOn = false;
+        });
+      } else {
+        print('led off failed');
+        setState(() {
+          isOn = true;
+        });
       }
-    }
+    });
   }
 
   ledOn() async {
     print('led on');
-    List<DiscoveredService> data = await discoverServices();
-    for (var i = 0; i < discoveredServices.length; i++) {
-      for (var j = 0; j < discoveredServices[i].characteristics.length; j++) {
-        //check uuid of characteristic and write value
-        DiscoveredCharacteristic characteristic =
-            discoveredServices[i].characteristics[j];
 
-        print('led on 2');
-        if (characteristic.characteristicId.toString().contains('fff3')) {
-          print(characteristic.characteristicId.toString());
-          //write value to characteristic with id
-          QualifiedCharacteristic data = QualifiedCharacteristic(
-              serviceId: discoveredServices[i].serviceId,
-              characteristicId: characteristic.characteristicId,
-              deviceId: widget.viewModel.deviceId);
-          await widget.viewModel.service.writeCharacterisiticWithoutResponse(
-              data,
-              [126, 4, 4, 0, 0, 0, 256, 0, 239, 51, 51, 51, 51, 51, 51, 51]);
-        }
+    await writeToDevice(
+            [126, 4, 4, 240, 0, 0, 256, 0, 239, 51, 51, 51, 51, 51, 51, 51])
+        .then((value) {
+      if (value) {
+        print('led on success');
+        setState(() {
+          isOn = true;
+        });
+      } else {
+        print('led on failed');
+        setState(() {
+          isOn = false;
+        });
       }
-    }
+    });
   }
 
-  Color pickerColor = Color(0xff443a49);
-  Color currentColor = Color(0xff443a49);
+  Color pickerColor = Color(0xff219653);
+  Color currentColor = Color(0xff219653);
 
   //add type
   List<Map<String, dynamic>> favColors = [
@@ -201,9 +194,137 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
     },
   ];
 
+  Future<bool> writeToDevice(List<int> deviceCode) async {
+    print('CHANGE STARTED');
+    try {
+      List<DiscoveredService> data = await discoverServices();
+      if (discoveredServices.length > 0 && discoveredServices != null) {
+        for (var i = 0; i < discoveredServices.length; i++) {
+          for (var j = 0;
+              j < discoveredServices[i].characteristics.length;
+              j++) {
+            //check uuid of characteristic and write value
+            DiscoveredCharacteristic characteristic =
+                discoveredServices[i].characteristics[j];
+            if (characteristic.characteristicId.toString().contains('fff3')) {
+              print(characteristic.characteristicId.toString());
+              //write value to characteristic with id
+              QualifiedCharacteristic data = QualifiedCharacteristic(
+                  serviceId: discoveredServices[i].serviceId,
+                  characteristicId: characteristic.characteristicId,
+                  deviceId: widget.viewModel.deviceId);
+              try {
+                await widget.viewModel.service
+                    .writeCharacterisiticWithoutResponse(data, deviceCode);
+                setState(() {
+                  isOn = false;
+                });
+                return true;
+              } catch (e) {
+                return false;
+              }
+            }
+          }
+        }
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print(e);
+      return false;
+    }
+  }
+
 // ValueChanged<Color> callback
-  void changeColor(Color color) {
+  void changeColor(Color color) async {
     setState(() => pickerColor = color);
+    if (isOn) {
+      print('COLOR CHANGE');
+      writeToDevice([
+        126,
+        7,
+        5,
+        3,
+        pickerColor.red,
+        pickerColor.green,
+        pickerColor.blue,
+        0,
+        239,
+        51,
+        51,
+        51,
+        51,
+        51,
+        51,
+        51
+      ]);
+    } else {
+      print('colorchange33');
+      ledOn();
+      writeToDevice([
+        126,
+        7,
+        5,
+        3,
+        pickerColor.red,
+        pickerColor.green,
+        pickerColor.blue,
+        0,
+        239,
+        51,
+        51,
+        51,
+        51,
+        51,
+        51,
+        51
+      ]);
+    }
+  }
+
+  changeBrightness() {
+    if (isOn) {
+      writeToDevice([
+        126,
+        4,
+        1,
+        _brightness.toInt(),
+        1,
+        255,
+        255,
+        0,
+        239,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33
+      ]);
+    } else {
+      print('BRIGHTNESS change33');
+      ledOn();
+      writeToDevice([
+        126,
+        4,
+        1,
+        _brightness.toInt(),
+        1,
+        255,
+        255,
+        0,
+        239,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33
+      ]);
+    }
   }
 
   @override
@@ -217,7 +338,7 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                 padding:
                     const EdgeInsetsDirectional.only(top: 8.0, bottom: 16.0),
                 child: Text(
-                  "FABRE",
+                  "Farbe",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 30,
@@ -231,17 +352,18 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        ledOn();
+                    CupertinoSwitch(
+                      value: isOn,
+                      onChanged: (value) {
+                        setState(() {
+                          isOn = value;
+                          if (isOn) {
+                            ledOn();
+                          } else {
+                            ledOff();
+                          }
+                        });
                       },
-                      child: const Text("Open Led"),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        ledOff();
-                      },
-                      child: const Text("Close Led"),
                     ),
                   ],
                 ),
@@ -253,6 +375,7 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
               //     style: const TextStyle(fontWeight: FontWeight.bold),
               //   ),
               // ),
+
               ColorPicker(
                 pickerColor: pickerColor,
                 onColorChanged: changeColor,
@@ -266,9 +389,91 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                   topRight: const Radius.circular(2.0),
                 ),
                 hexInputBar: false,
+                portraitOnly: true,
                 colorHistory: [],
                 showLabel: false,
               ),
+
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Timer',
+                            style: TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '35:35:35',
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white30),
+                          )
+                        ],
+                      ),
+                    ),
+                    const Divider(
+                      height: 2,
+                      thickness: 0.5,
+                      indent: 10,
+                      endIndent: 10,
+                      color: Colors.white,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 2),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Helligkeit',
+                            style: TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                '%' + _brightness.toInt().toString(),
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white30),
+                              ),
+                              Slider(
+                                min: 0,
+                                max: 100,
+                                inactiveColor: Colors.white,
+                                value: _brightness,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _brightness = value;
+                                  });
+                                  changeBrightness();
+                                },
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                    const Divider(
+                      height: 2,
+                      thickness: 0.5,
+                      indent: 10,
+                      endIndent: 10,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 30),
               Text(
                 'Favs',
                 textAlign: TextAlign.center,
@@ -287,6 +492,7 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                       onTap: () {
                         setState(() {
                           favColors[i]['selected'] = true;
+                          changeColor(favColors[i]['color']);
                           for (var j = 0; j < favColors.length; j++) {
                             if (j != i) {
                               favColors[j]['selected'] = false;
@@ -307,6 +513,7 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                 ]),
               ),
 
+              SizedBox(height: 30),
               Text(
                 'Basic Colors',
                 textAlign: TextAlign.center,
@@ -325,6 +532,7 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                       onTap: () {
                         setState(() {
                           favColors[i]['selected'] = true;
+                          changeColor(favColors[i]['color']);
                           for (var j = 0; j < favColors.length; j++) {
                             if (j != i) {
                               favColors[j]['selected'] = false;

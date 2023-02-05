@@ -48,6 +48,7 @@ class _DeviceList extends StatefulWidget {
 
 class _DeviceListState extends State<_DeviceList> {
   late TextEditingController _uuidController;
+  bool _isScanInProgress = false;
 
   @override
   void initState() {
@@ -78,6 +79,7 @@ class _DeviceListState extends State<_DeviceList> {
   }
 
   void _startScanning() {
+    setState(() => _isScanInProgress = true);
     final text = _uuidController.text;
     widget.startScan(text.isEmpty ? [] : [Uuid.parse(_uuidController.text)]);
   }
@@ -89,6 +91,17 @@ class _DeviceListState extends State<_DeviceList> {
           elevation: 0,
           title: const Text('Scan for devices'),
         ),
+        floatingActionButton: FloatingActionButton(
+            child: widget.scannerState.scanIsInProgress
+                ? const Icon(Icons.pause)
+                : const Icon(Icons.refresh),
+            onPressed: () {
+              !widget.scannerState.scanIsInProgress && _isValidUuidInput()
+                  ? _startScanning
+                  : widget.scannerState.scanIsInProgress
+                      ? widget.stopScan
+                      : null;
+            }),
         body: Column(
           children: [
             Padding(

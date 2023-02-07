@@ -43,7 +43,12 @@ class _DeviceDetail extends StatelessWidget {
               actions: [],
               backgroundColor: Colors.transparent,
               elevation: 0,
-              title: Text(device.name),
+              title: Container(
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 150,
+                ),
+              ),
             ),
             bottomNavigationBar: tabBarNav(),
             body: TabBarView(

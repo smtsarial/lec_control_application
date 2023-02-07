@@ -88,8 +88,11 @@ class _TimerScreenState extends State<_TimerScreen> {
   List<DiscoveredService> discoveredServices = [];
   bool isOn = false;
   double _brightness = 0.0;
-  String openTime = 'MO';
-  String closeTime = 'MO';
+  String openTimeDay = 'MO';
+  String closeTimeDay = 'MO';
+
+  String openTime = '00:00';
+  String closeTime = '00:00';
   bool openRunning = false;
   bool closeRunning = false;
 
@@ -119,52 +122,12 @@ class _TimerScreenState extends State<_TimerScreen> {
     return result;
   }
 
-  ledOff() async {
-    print('led off');
-
-    await writeToDevice(
-            [126, 4, 4, 0, 0, 0, 256, 0, 239, 51, 51, 51, 51, 51, 51, 51])
-        .then((value) {
-      if (value) {
-        print('led off success');
-        setState(() {
-          isOn = false;
-        });
-      } else {
-        print('led off failed');
-        setState(() {
-          isOn = true;
-        });
-      }
-    });
-  }
-
-  ledOn() async {
-    print('led on');
-
-    await writeToDevice(
-            [126, 4, 4, 240, 0, 0, 256, 0, 239, 51, 51, 51, 51, 51, 51, 51])
-        .then((value) {
-      if (value) {
-        print('led on success');
-        setState(() {
-          isOn = true;
-        });
-      } else {
-        print('led on failed');
-        setState(() {
-          isOn = false;
-        });
-      }
-    });
-  }
-
   Color pickerColor = Color(0xff219653);
   Color currentColor = Color(0xff219653);
 
   //add type
   List<Map<String, dynamic>> days = [
-    {'day': 'MO', 'openSelected': false, 'closeSelected': false, 'value': 129},
+    {'day': 'MO', 'openSelected': true, 'closeSelected': true, 'value': 129},
     {'day': 'DI', 'openSelected': false, 'closeSelected': false, 'value': 2},
     {'day': 'MI', 'openSelected': false, 'closeSelected': false, 'value': 4},
     {'day': 'DO', 'openSelected': false, 'closeSelected': false, 'value': 8},
@@ -215,94 +178,92 @@ class _TimerScreenState extends State<_TimerScreen> {
     }
   }
 
-// ValueChanged<Color> callback
-  void changeColor(Color color) async {
-    setState(() => pickerColor = color);
-    if (isOn) {
-      print('COLOR CHANGE');
-      writeToDevice([
-        126,
-        7,
-        5,
-        3,
-        pickerColor.red,
-        pickerColor.green,
-        pickerColor.blue,
-        0,
-        239,
-        51,
-        51,
-        51,
-        51,
-        51,
-        51,
-        51
-      ]);
-    } else {
-      print('colorchange33');
-      ledOn();
-      writeToDevice([
-        126,
-        7,
-        5,
-        3,
-        pickerColor.red,
-        pickerColor.green,
-        pickerColor.blue,
-        0,
-        239,
-        51,
-        51,
-        51,
-        51,
-        51,
-        51,
-        51
-      ]);
+  int returnDayValues(day) {
+    switch (day) {
+      case 'MO':
+        return 129;
+      case 'DI':
+        return 2;
+      case 'MI':
+        return 4;
+      case 'DO':
+        return 8;
+      case 'FR':
+        return 16;
+      case 'SA':
+        return 32;
+      case 'SO':
+        return 64;
+      default:
+        return 0;
     }
   }
 
-  changeBrightness() {
-    if (isOn) {
-      writeToDevice([
-        126,
-        4,
-        1,
-        _brightness.toInt(),
-        1,
-        255,
-        255,
-        0,
-        239,
-        33,
-        33,
-        33,
-        33,
-        33,
-        33,
-        33
-      ]);
+  calculateOutputForPlan(plan) async {
+    var total = 0;
+    if (plan == 'open') {
+      for (var i = 0; i < days.length; i++) {
+        if (days[i]['openSelected'] == true) {
+          total = total.toInt() + returnDayValues(days[i]['day']);
+        }
+      }
+
+      if (total > 0) {
+        var time = openTime.split(':');
+        var hour = int.parse(time[0]);
+        var minute = int.parse(time[1]);
+        await writeToDevice([
+          126,
+          8,
+          82,
+          hour,
+          minute,
+          0,
+          0,
+          total,
+          239,
+          33,
+          33,
+          33,
+          33,
+          33,
+          33,
+          33
+        ]);
+      } else {
+        return 0;
+      }
     } else {
-      print('BRIGHTNESS change33');
-      ledOn();
-      writeToDevice([
-        126,
-        4,
-        1,
-        _brightness.toInt(),
-        1,
-        255,
-        255,
-        0,
-        239,
-        33,
-        33,
-        33,
-        33,
-        33,
-        33,
-        33
-      ]);
+      for (var i = 0; i < days.length; i++) {
+        if (days[i]['closeSelected'] == true) {
+          total = total.toInt() + returnDayValues(days[i]['day']);
+        }
+      }
+      if (total > 0) {
+        var time = closeTime.split(':');
+        var hour = int.parse(time[0]);
+        var minute = int.parse(time[1]);
+        await writeToDevice([
+          126,
+          8,
+          82,
+          hour,
+          minute,
+          0,
+          0,
+          total,
+          239,
+          33,
+          33,
+          33,
+          33,
+          33,
+          33,
+          33
+        ]);
+      } else {
+        return 0;
+      }
     }
   }
 
@@ -355,6 +316,9 @@ class _TimerScreenState extends State<_TimerScreen> {
                           setState(() {
                             openRunning = value;
                           });
+                          if (openRunning) {
+                            calculateOutputForPlan('open');
+                          }
                         },
                       ),
                     ],
@@ -412,12 +376,28 @@ class _TimerScreenState extends State<_TimerScreen> {
                             fontWeight: FontWeight.bold,
                             color: Colors.black),
                       ),
-                      Text(
-                        "00:00",
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black),
+                      GestureDetector(
+                        onTap: () {
+                          if (!openRunning) {
+                            showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.now(),
+                            ).then((value) {
+                              setState(() {
+                                openTime = value!.hour.toString() +
+                                    ":" +
+                                    value.minute.toString();
+                              });
+                            });
+                          }
+                        },
+                        child: Text(
+                          openTime,
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
+                        ),
                       ),
                     ],
                   ),
@@ -453,6 +433,9 @@ class _TimerScreenState extends State<_TimerScreen> {
                           setState(() {
                             closeRunning = value;
                           });
+                          if (closeRunning) {
+                            calculateOutputForPlan('close');
+                          }
                         },
                       ),
                     ],
@@ -510,12 +493,29 @@ class _TimerScreenState extends State<_TimerScreen> {
                             fontWeight: FontWeight.bold,
                             color: Colors.black),
                       ),
-                      Text(
-                        "00:00",
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black),
+                      GestureDetector(
+                        onTap: () {
+                          if (!closeRunning) {
+                            showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.now(),
+                            ).then((value) {
+                              print(value);
+                              setState(() {
+                                closeTime = value!.hour.toString() +
+                                    ":" +
+                                    value.minute.toString();
+                              });
+                            });
+                          }
+                        },
+                        child: Text(
+                          closeTime,
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
+                        ),
                       ),
                     ],
                   ),

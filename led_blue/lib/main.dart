@@ -69,10 +69,19 @@ void main() {
             textTheme: Typography(platform: TargetPlatform.android).white,
             primarySwatch: Colors.blue,
             scaffoldBackgroundColor: _themeColor),
-        home: const DefaultTextStyle(
-          style: const TextStyle(
-              fontFamily: 'Roboto', fontWeight: FontWeight.w900),
-          child: const HomeScreen(),
+        home: Container(
+          height: 200,
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+                image: AssetImage("assets/images/main_bg.png"),
+                fit: BoxFit.cover),
+          ),
+          child: const DefaultTextStyle(
+            style: const TextStyle(
+                fontFamily: 'Roboto', fontWeight: FontWeight.w900),
+            child: const HomeScreen(),
+          ),
         ),
       ),
     ),

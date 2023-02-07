@@ -55,6 +55,7 @@ class _DeviceListState extends State<_DeviceList> {
     super.initState();
     _uuidController = TextEditingController()
       ..addListener(() => setState(() {}));
+    _startScanning();
   }
 
   @override
@@ -89,19 +90,19 @@ class _DeviceListState extends State<_DeviceList> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: const Text('Scan for devices'),
+          title: Text('Count: ${widget.scannerState.discoveredDevices.length}'),
         ),
-        floatingActionButton: FloatingActionButton(
-            child: widget.scannerState.scanIsInProgress
-                ? const Icon(Icons.pause)
-                : const Icon(Icons.refresh),
-            onPressed: () {
-              !widget.scannerState.scanIsInProgress && _isValidUuidInput()
-                  ? _startScanning
-                  : widget.scannerState.scanIsInProgress
-                      ? widget.stopScan
-                      : null;
-            }),
+        // floatingActionButton: FloatingActionButton(
+        //     child: widget.scannerState.scanIsInProgress
+        //         ? const Icon(Icons.pause)
+        //         : const Icon(Icons.refresh),
+        //     onPressed: () {
+        //       !widget.scannerState.scanIsInProgress && _isValidUuidInput()
+        //           ? _startScanning
+        //           : widget.scannerState.scanIsInProgress
+        //               ? widget.stopScan
+        //               : null;
+        //     }),
         body: Column(
           children: [
             Padding(
@@ -122,63 +123,64 @@ class _DeviceListState extends State<_DeviceList> {
                   //   autocorrect: false,
                   // ),
                   // const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ElevatedButton(
-                        child: const Text('Scan'),
-                        onPressed: !widget.scannerState.scanIsInProgress &&
-                                _isValidUuidInput()
-                            ? _startScanning
-                            : null,
-                      ),
-                      ElevatedButton(
-                        child: const Text('Stop'),
-                        onPressed: widget.scannerState.scanIsInProgress
-                            ? widget.stopScan
-                            : null,
-                      ),
-                    ],
-                  ),
+                  // Row(
+                  //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  //   children: [
+                  //     ElevatedButton(
+                  //       child: const Text('Scan'),
+                  //       onPressed: !widget.scannerState.scanIsInProgress &&
+                  //               _isValidUuidInput()
+                  //           ? _startScanning
+                  //           : null,
+                  //     ),
+                  //     ElevatedButton(
+                  //       child: const Text('Stop'),
+                  //       onPressed: widget.scannerState.scanIsInProgress
+                  //           ? widget.stopScan
+                  //           : null,
+                  //     ),
+                  //   ],
+                  // ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                'Geräte in der nähe',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 30,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 40),
             Flexible(
               child: ListView(
                 children: [
-                  // SwitchListTile(
-                  //   title: const Text("Verbose logging"),
-                  //   value: widget.verboseLogging,
-                  //   onChanged: (_) => setState(widget.toggleVerboseLogging),
-                  // ),
-                  ListTile(
-                    title: Text(
-                      !widget.scannerState.scanIsInProgress
-                          ? 'Tap start to begin scanning'
-                          : 'Tap a device to connect to it',
-                    ),
-                    trailing: (widget.scannerState.scanIsInProgress ||
-                            widget.scannerState.discoveredDevices.isNotEmpty)
-                        ? Text(
-                            'count: ${widget.scannerState.discoveredDevices.length}',
-                          )
-                        : null,
-                  ),
                   ...widget.scannerState.discoveredDevices
                       .map(
-                        (device) => ListTile(
-                          title: Text(device.name),
-                          subtitle: Text("${device.id}\nRSSI: ${device.rssi}"),
-                          leading: const BluetoothIcon(),
-                          onTap: () async {
-                            widget.stopScan();
-                            await Navigator.push<void>(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        DeviceDetailScreen(device: device)));
-                          },
+                        (device) => Container(
+                          margin: EdgeInsets.symmetric(horizontal: 32),
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            border:
+                                Border(bottom: BorderSide(color: Colors.grey)),
+                          ),
+                          child: ListTile(
+                            title: Text(device.name),
+                            subtitle:
+                                Text("${device.id}\nRSSI: ${device.rssi}"),
+                            onTap: () async {
+                              widget.stopScan();
+                              await Navigator.push<void>(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          DeviceDetailScreen(device: device)));
+                            },
+                          ),
                         ),
                       )
                       .toList(),

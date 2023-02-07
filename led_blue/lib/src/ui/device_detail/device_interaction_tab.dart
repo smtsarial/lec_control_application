@@ -346,40 +346,10 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                   ),
                 ),
               ),
-
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    CupertinoSwitch(
-                      value: isOn,
-                      onChanged: (value) {
-                        setState(() {
-                          isOn = value;
-                          if (isOn) {
-                            ledOn();
-                          } else {
-                            ledOff();
-                          }
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              // Padding(
-              //   padding: const EdgeInsetsDirectional.only(start: 16.0),
-              //   child: Text(
-              //     "Status: ${widget.viewModel.connectionStatus}",
-              //     style: const TextStyle(fontWeight: FontWeight.bold),
-              //   ),
-              // ),
-
               ColorPicker(
                 pickerColor: pickerColor,
                 onColorChanged: changeColor,
-                colorPickerWidth: 300,
+                colorPickerWidth: 250,
                 enableAlpha: false,
                 labelTypes: [],
                 displayThumbColor: false,
@@ -393,7 +363,6 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                 colorHistory: [],
                 showLabel: false,
               ),
-
               Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
@@ -405,17 +374,23 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Timer',
+                            isOn ? "An" : "Aus",
                             style: TextStyle(
                                 fontSize: 10, fontWeight: FontWeight.bold),
                           ),
-                          Text(
-                            '35:35:35',
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white30),
-                          )
+                          CupertinoSwitch(
+                            value: isOn,
+                            onChanged: (value) {
+                              setState(() {
+                                isOn = value;
+                                if (isOn) {
+                                  ledOn();
+                                } else {
+                                  ledOff();
+                                }
+                              });
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -512,7 +487,6 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                     )
                 ]),
               ),
-
               SizedBox(height: 30),
               Text(
                 'Basic Colors',

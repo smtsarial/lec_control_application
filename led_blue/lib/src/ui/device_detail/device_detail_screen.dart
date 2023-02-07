@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:led_blue/src/ble/ble_device_connector.dart';
 import 'package:led_blue/src/ui/device_detail/device_log_tab.dart';
+import 'package:led_blue/src/ui/device_detail/modi/modi_screen.dart';
 import 'package:led_blue/src/ui/device_detail/timer/timer_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -37,7 +38,7 @@ class _DeviceDetail extends StatelessWidget {
           return true;
         },
         child: DefaultTabController(
-          length: 3,
+          length: 4,
           child: Scaffold(
             appBar: AppBar(
               actions: [],
@@ -57,7 +58,8 @@ class _DeviceDetail extends StatelessWidget {
                   device: device,
                 ),
                 const DeviceLogTab(),
-                TimerScreenTab(device: device)
+                TimerScreenTab(device: device),
+                ModiScreenTab(device: device)
               ],
             ),
           ),

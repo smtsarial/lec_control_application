@@ -212,24 +212,31 @@ class _TimerScreenState extends State<_TimerScreen> {
         var time = openTime.split(':');
         var hour = int.parse(time[0]);
         var minute = int.parse(time[1]);
-        await writeToDevice([
-          126,
-          8,
-          82,
-          hour,
-          minute,
-          0,
-          0,
-          total,
-          239,
-          33,
-          33,
-          33,
-          33,
-          33,
-          33,
-          33
-        ]);
+        if (widget.viewModel.connectionStatus ==
+                DeviceConnectionState.connected ||
+            widget.viewModel.connectionStatus ==
+                DeviceConnectionState.connecting) {
+          await writeToDevice([
+            126,
+            8,
+            82,
+            hour,
+            minute,
+            0,
+            0,
+            total,
+            239,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33,
+            33
+          ]);
+        } else {
+          return 0;
+        }
       } else {
         return 0;
       }

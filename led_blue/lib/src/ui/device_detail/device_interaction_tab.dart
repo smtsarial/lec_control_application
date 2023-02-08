@@ -238,8 +238,10 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
 
 // ValueChanged<Color> callback
   void changeColor(Color color) async {
+    print(widget.viewModel.connectionStatus);
     setState(() => pickerColor = color);
-    if (isOn) {
+    if (widget.viewModel.connectionStatus == DeviceConnectionState.connected ||
+        widget.viewModel.connectionStatus == DeviceConnectionState.connecting) {
       print('COLOR CHANGE');
       writeToDevice([
         126,
@@ -284,7 +286,8 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
   }
 
   changeBrightness() {
-    if (isOn) {
+    if (widget.viewModel.connectionStatus == DeviceConnectionState.connected ||
+        widget.viewModel.connectionStatus == DeviceConnectionState.connecting) {
       writeToDevice([
         126,
         4,

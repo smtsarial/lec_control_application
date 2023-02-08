@@ -165,6 +165,11 @@ class _TimerScreenState extends State<_TimerScreen> {
     {'name': 'Water', 'selected': false},
     {'name': 'Ba', 'selected': false},
   ];
+  List<Map<String, dynamic>> modiList2 = [
+    {'name': 'Magic Back', 'selected': false},
+    {'name': 'Autoplay', 'selected': true},
+    {'name': '2 Magic Forwa', 'selected': false},
+  ];
 
   Future<bool> writeToDevice(List<int> deviceCode) async {
     print('CHANGE STARTED');
@@ -275,6 +280,44 @@ class _TimerScreenState extends State<_TimerScreen> {
                       ),
                     )
                 ]),
+              ),
+              SizedBox(
+                height: 20,
+              ),
+              Center(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Center(
+                    child: Row(children: [
+                      for (var i = 0; i < modiList2.length; i++)
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              for (var i = 0; i < modiList2.length; i++) {
+                                modiList2[i]['selected'] = false;
+                              }
+                              modiList2[i]['selected'] = true;
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 4),
+                            child: Text(
+                              modiList2[i]['name'],
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: modiList2[i]['selected']
+                                    ? Colors.white
+                                    : Color.fromARGB(255, 154, 154, 156),
+                              ),
+                            ),
+                          ),
+                        )
+                    ]),
+                  ),
+                ),
               ),
               SingleChildScrollView(
                 padding: EdgeInsets.symmetric(vertical: 30),

@@ -58,6 +58,8 @@ class _DeviceListState extends State<_DeviceList> {
     _startScanning();
   }
 
+  
+
   @override
   void dispose() {
     widget.stopScan();

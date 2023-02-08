@@ -4,6 +4,7 @@ import 'package:led_blue/src/ble/ble_device_connector.dart';
 import 'package:led_blue/src/ui/device_detail/device_log_tab.dart';
 import 'package:led_blue/src/ui/device_detail/modi/modi_screen.dart';
 import 'package:led_blue/src/ui/device_detail/timer/timer_screen.dart';
+import 'package:led_blue/src/ui/device_detail/tone/tone_screen.dart';
 import 'package:provider/provider.dart';
 
 import 'device_interaction_tab.dart';
@@ -38,7 +39,7 @@ class _DeviceDetail extends StatelessWidget {
           return true;
         },
         child: DefaultTabController(
-          length: 4,
+          length: 5,
           child: Scaffold(
             appBar: AppBar(
               actions: [],
@@ -57,9 +58,10 @@ class _DeviceDetail extends StatelessWidget {
                 DeviceInteractionTab(
                   device: device,
                 ),
+                ModiScreenTab(device: device),
+                ToneScreenTab(device: device),
                 const DeviceLogTab(),
                 TimerScreenTab(device: device),
-                ModiScreenTab(device: device)
               ],
             ),
           ),

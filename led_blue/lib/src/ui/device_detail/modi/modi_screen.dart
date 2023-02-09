@@ -158,12 +158,12 @@ class _TimerScreenState extends State<_TimerScreen> {
     },
   ];
   List<Map<String, dynamic>> modiList = [
-    {'name': 'Badge', 'selected': false},
-    {'name': 'Basic', 'selected': false},
-    {'name': 'Curtain', 'selected': false},
-    {'name': 'Trans', 'selected': false},
-    {'name': 'Water', 'selected': false},
-    {'name': 'Ba', 'selected': false},
+    {'name': 'Badge', 'selected': false, 'value': 10},
+    {'name': 'Basic', 'selected': false, 'value': 20},
+    {'name': 'Curtain', 'selected': false, 'value': 30},
+    {'name': 'Trans', 'selected': false, 'value': 40},
+    {'name': 'Water', 'selected': false, 'value': 50},
+    {'name': 'Ba', 'selected': false, 'value': 60},
   ];
   List<Map<String, dynamic>> modiList2 = [
     {'name': 'Magic Back', 'selected': false},
@@ -211,6 +211,14 @@ class _TimerScreenState extends State<_TimerScreen> {
       print(e);
       return false;
     }
+  }
+
+  Future<void> runDeviceCode() async {
+    //find first selected modiList item
+    int modiIndex =
+        modiList.indexWhere((element) => element['selected'] == true);
+    
+
   }
 
   @override

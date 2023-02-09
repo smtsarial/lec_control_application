@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:led_blue/src/ble/ble_scanner.dart';
+import 'package:led_blue/widget/drawer_widget.dart';
 import 'package:provider/provider.dart';
 
 import '../ble/ble_logger.dart';
@@ -58,8 +59,6 @@ class _DeviceListState extends State<_DeviceList> {
     _startScanning();
   }
 
-  
-
   @override
   void dispose() {
     widget.stopScan();
@@ -94,17 +93,7 @@ class _DeviceListState extends State<_DeviceList> {
           elevation: 0,
           title: Text('Count: ${widget.scannerState.discoveredDevices.length}'),
         ),
-        // floatingActionButton: FloatingActionButton(
-        //     child: widget.scannerState.scanIsInProgress
-        //         ? const Icon(Icons.pause)
-        //         : const Icon(Icons.refresh),
-        //     onPressed: () {
-        //       !widget.scannerState.scanIsInProgress && _isValidUuidInput()
-        //           ? _startScanning
-        //           : widget.scannerState.scanIsInProgress
-        //               ? widget.stopScan
-        //               : null;
-        //     }),
+        drawer: DrawerWidget(stopScan: widget.stopScan),
         body: Column(
           children: [
             Padding(

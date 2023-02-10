@@ -13,10 +13,10 @@ import 'package:led_blue/src/ui/device_detail/device_interaction_tab.dart';
 import 'package:led_blue/src/ui/device_detail/timer/timer_screen.dart';
 import 'package:provider/provider.dart';
 
-class ToneScreenTab extends StatelessWidget {
+class MicScreenTab extends StatelessWidget {
   final DiscoveredDevice device;
 
-  const ToneScreenTab({
+  const MicScreenTab({
     required this.device,
     Key? key,
   }) : super(key: key);
@@ -27,7 +27,7 @@ class ToneScreenTab extends StatelessWidget {
         builder: (context, deviceConnector, connectionStateUpdate,
                 serviceDiscoverer, __) =>
             _TimerScreen(
-          viewModel: ToneScreenViewModel(
+          viewModel: MicScreenViewModel(
               deviceId: device.id,
               connectionStatus: connectionStateUpdate.connectionState,
               deviceConnector: deviceConnector,
@@ -40,8 +40,8 @@ class ToneScreenTab extends StatelessWidget {
 
 @immutable
 @FunctionalData()
-class ToneScreenViewModel extends $TimerScreenViewModel {
-  const ToneScreenViewModel({
+class MicScreenViewModel extends $TimerScreenViewModel {
+  const MicScreenViewModel({
     required this.deviceId,
     required this.connectionStatus,
     required this.deviceConnector,
@@ -76,7 +76,7 @@ class _TimerScreen extends StatefulWidget {
     Key? key,
   }) : super(key: key);
 
-  final ToneScreenViewModel viewModel;
+  final MicScreenViewModel viewModel;
 
   @override
   _TimerScreenState createState() => _TimerScreenState();
@@ -84,7 +84,6 @@ class _TimerScreen extends StatefulWidget {
 
 class _TimerScreenState extends State<_TimerScreen> {
   List<DiscoveredService> discoveredServices = [];
-  bool isOn = false;
 
   @override
   void initState() {
@@ -93,7 +92,6 @@ class _TimerScreenState extends State<_TimerScreen> {
     } catch (e) {
       print(e);
     }
-
     super.initState();
   }
 
@@ -112,8 +110,49 @@ class _TimerScreenState extends State<_TimerScreen> {
     return result;
   }
 
-  Color pickerColor = Color(0xff219653);
-  Color currentColor = Color(0xff219653);
+  Future<bool> writeToDevice(List<int> deviceCode) async {
+    print('CHANGE STARTED');
+    try {
+      List<DiscoveredService> data = await discoverServices();
+      if (discoveredServices.length > 0 && discoveredServices != null) {
+        for (var i = 0; i < discoveredServices.length; i++) {
+          for (var j = 0;
+              j < discoveredServices[i].characteristics.length;
+              j++) {
+            //check uuid of characteristic and write value
+            DiscoveredCharacteristic characteristic =
+                discoveredServices[i].characteristics[j];
+            if (characteristic.characteristicId.toString().contains('fff3')) {
+              print(characteristic.characteristicId.toString());
+              //write value to characteristic with id
+              QualifiedCharacteristic data = QualifiedCharacteristic(
+                  serviceId: discoveredServices[i].serviceId,
+                  characteristicId: characteristic.characteristicId,
+                  deviceId: widget.viewModel.deviceId);
+              try {
+                await widget.viewModel.service
+                    .writeCharacterisiticWithoutResponse(data, deviceCode);
+
+                return true;
+              } catch (e) {
+                return false;
+              }
+            }
+          }
+        }
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print(e);
+      return false;
+    }
+  }
+
+  Future<void> runDeviceCode() async {
+    //find first selected modiList item
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +165,7 @@ class _TimerScreenState extends State<_TimerScreen> {
                 padding:
                     const EdgeInsetsDirectional.only(top: 8.0, bottom: 16.0),
                 child: Text(
-                  "Tone",
+                  "Mic",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 30,
@@ -134,6 +173,29 @@ class _TimerScreenState extends State<_TimerScreen> {
                   ),
                 ),
               ),
+              SizedBox(
+                height: 150,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                      onTap: () {},
+                      child: Container(
+                          height: 200,
+                          width: 200,
+                          decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(100),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                )
+                              ]),
+                          child: Image.asset('assets/images/record.png'))),
+                ],
+              )
             ],
           ),
         ),

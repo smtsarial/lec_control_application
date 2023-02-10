@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:led_blue/src/ble/ble_device_connector.dart';
 import 'package:led_blue/src/ui/device_detail/device_log_tab.dart';
+import 'package:led_blue/src/ui/device_detail/mic/mic_screen.dart';
 import 'package:led_blue/src/ui/device_detail/modi/modi_screen.dart';
 import 'package:led_blue/src/ui/device_detail/timer/timer_screen.dart';
 import 'package:led_blue/src/ui/device_detail/tone/tone_screen.dart';
@@ -60,7 +61,9 @@ class _DeviceDetail extends StatelessWidget {
                 ),
                 ModiScreenTab(device: device),
                 ToneScreenTab(device: device),
-                const DeviceLogTab(),
+                MicScreenTab(
+                  device: device,
+                ),
                 TimerScreenTab(device: device),
               ],
             ),

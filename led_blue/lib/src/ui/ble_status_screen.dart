@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../widgets.dart';
+import '../widget/widgets.dart';
 
 class BleStatusScreen extends StatelessWidget {
   const BleStatusScreen({required this.status, Key? key}) : super(key: key);

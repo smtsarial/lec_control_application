@@ -41,6 +41,47 @@ class BleDeviceInteractor {
 
   final void Function(String message) _logMessage;
 
+  Future<bool> writeDataToFF3Services(
+      String deviceId, List<int> deviceCode) async {
+    //DISCOVER ALL SERVICES
+    try {
+      List<DiscoveredService> discoveredServices =
+          await discoverServices(deviceId);
+      if (discoveredServices.length > 0 && discoveredServices != null) {
+        for (var i = 0; i < discoveredServices.length; i++) {
+          for (var j = 0;
+              j < discoveredServices[i].characteristics.length;
+              j++) {
+            //check uuid of characteristic and write value
+            DiscoveredCharacteristic characteristic =
+                discoveredServices[i].characteristics[j];
+            if (characteristic.characteristicId.toString().contains('fff3')) {
+              print(characteristic.characteristicId.toString());
+              //write value to characteristic with id
+              QualifiedCharacteristic data = QualifiedCharacteristic(
+                  serviceId: discoveredServices[i].serviceId,
+                  characteristicId: characteristic.characteristicId,
+                  deviceId: deviceId);
+              try {
+                await writeCharacterisiticWithoutResponse(data, deviceCode);
+
+                return true;
+              } catch (e) {
+                return false;
+              }
+            }
+          }
+        }
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print(e);
+      return false;
+    }
+  }
+
   Future<List<DiscoveredService>> discoverServices(String deviceId) async {
     try {
       _logMessage('Start discovering services for: $deviceId');

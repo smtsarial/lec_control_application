@@ -136,48 +136,6 @@ class _TimerScreenState extends State<_TimerScreen> {
     {'day': 'SO', 'openSelected': false, 'closeSelected': false, 'value': 64},
   ];
 
-  Future<bool> writeToDevice(List<int> deviceCode) async {
-    print('CHANGE STARTED');
-    try {
-      List<DiscoveredService> data = await discoverServices();
-      if (discoveredServices.length > 0 && discoveredServices != null) {
-        for (var i = 0; i < discoveredServices.length; i++) {
-          for (var j = 0;
-              j < discoveredServices[i].characteristics.length;
-              j++) {
-            //check uuid of characteristic and write value
-            DiscoveredCharacteristic characteristic =
-                discoveredServices[i].characteristics[j];
-            if (characteristic.characteristicId.toString().contains('fff3')) {
-              print(characteristic.characteristicId.toString());
-              //write value to characteristic with id
-              QualifiedCharacteristic data = QualifiedCharacteristic(
-                  serviceId: discoveredServices[i].serviceId,
-                  characteristicId: characteristic.characteristicId,
-                  deviceId: widget.viewModel.deviceId);
-              try {
-                await widget.viewModel.service
-                    .writeCharacterisiticWithoutResponse(data, deviceCode);
-                setState(() {
-                  isOn = false;
-                });
-                return true;
-              } catch (e) {
-                return false;
-              }
-            }
-          }
-        }
-        return true;
-      } else {
-        return false;
-      }
-    } catch (e) {
-      print(e);
-      return false;
-    }
-  }
-
   int returnDayValues(day) {
     switch (day) {
       case 'MO':
@@ -216,7 +174,8 @@ class _TimerScreenState extends State<_TimerScreen> {
                 DeviceConnectionState.connected ||
             widget.viewModel.connectionStatus ==
                 DeviceConnectionState.connecting) {
-          await writeToDevice([
+          await widget.viewModel.service.writeDataToFF3Services(
+              widget.viewModel.deviceId, [
             126,
             8,
             82,
@@ -250,7 +209,8 @@ class _TimerScreenState extends State<_TimerScreen> {
         var time = closeTime.split(':');
         var hour = int.parse(time[0]);
         var minute = int.parse(time[1]);
-        await writeToDevice([
+        await widget.viewModel.service.writeDataToFF3Services(
+            widget.viewModel.deviceId, [
           126,
           8,
           82,

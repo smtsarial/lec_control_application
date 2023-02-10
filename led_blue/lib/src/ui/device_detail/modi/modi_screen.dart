@@ -108,6 +108,8 @@ class _TimerScreenState extends State<_TimerScreen> {
   initilize() async {
     await widget.viewModel.connect().then((value) async {
       //discoverServices();
+
+      getSelectedCategoryItems();
     });
   }
 
@@ -123,102 +125,87 @@ class _TimerScreenState extends State<_TimerScreen> {
   Color pickerColor = Color(0xff219653);
   Color currentColor = Color(0xff219653);
 //add type
-  List<Map<String, dynamic>> modiselection = [
-    {
-      'color': Color(0xffEB5757),
-      'selected': false,
-    },
-    {
-      'color': Color(0xffF2994A),
-      'selected': true,
-    },
-    {
-      'color': Color(0xffF2C94C),
-      'selected': false,
-    },
-    {
-      'color': Color(0xff219653),
-      'selected': false,
-    },
-    {
-      'color': Color(0xff6FCF97),
-      'selected': false,
-    },
-    {
-      'color': Color(0xffBB6BD9),
-      'selected': false,
-    },
-    {
-      'color': Color(0xff6FCF97),
-      'selected': false,
-    },
-    {
-      'color': Color(0xffed1c24),
-      'selected': false,
-    },
-  ];
-  List<Map<String, dynamic>> modiList = [
-    {'name': 'Badge', 'selected': false, 'value': 10},
-    {'name': 'Basic', 'selected': false, 'value': 20},
-    {'name': 'Curtain', 'selected': false, 'value': 30},
-    {'name': 'Trans', 'selected': false, 'value': 40},
-    {'name': 'Water', 'selected': false, 'value': 50},
-    {'name': 'Ba', 'selected': false, 'value': 60},
-  ];
-  List<Map<String, dynamic>> modiList2 = [
-    {'name': 'Magic Back', 'selected': false},
-    {'name': 'Autoplay', 'selected': true},
-    {'name': '2 Magic Forwa', 'selected': false},
-  ];
 
-  Future<bool> writeToDevice(List<int> deviceCode) async {
-    print('CHANGE STARTED');
-    try {
-      List<DiscoveredService> data = await discoverServices();
-      if (discoveredServices.length > 0 && discoveredServices != null) {
-        for (var i = 0; i < discoveredServices.length; i++) {
-          for (var j = 0;
-              j < discoveredServices[i].characteristics.length;
-              j++) {
-            //check uuid of characteristic and write value
-            DiscoveredCharacteristic characteristic =
-                discoveredServices[i].characteristics[j];
-            if (characteristic.characteristicId.toString().contains('fff3')) {
-              print(characteristic.characteristicId.toString());
-              //write value to characteristic with id
-              QualifiedCharacteristic data = QualifiedCharacteristic(
-                  serviceId: discoveredServices[i].serviceId,
-                  characteristicId: characteristic.characteristicId,
-                  deviceId: widget.viewModel.deviceId);
-              try {
-                await widget.viewModel.service
-                    .writeCharacterisiticWithoutResponse(data, deviceCode);
-                setState(() {
-                  isOn = false;
-                });
-                return true;
-              } catch (e) {
-                return false;
-              }
-            }
-          }
-        }
-        return true;
-      } else {
-        return false;
-      }
-    } catch (e) {
-      print(e);
-      return false;
-    }
-  }
+  List<Map<String, dynamic>> categories = [
+    {'id': 1, 'name': 'Badge', 'selected': false, 'value': 10},
+    {'id': 2, 'name': 'Basic', 'selected': true, 'value': 20},
+    {'id': 3, 'name': 'Curtain', 'selected': false, 'value': 30},
+    {'id': 4, 'name': 'Trans', 'selected': false, 'value': 40},
+    {'id': 5, 'name': 'Water', 'selected': false, 'value': 50},
+    {'id': 6, 'name': 'Ba', 'selected': false, 'value': 60},
+  ];
 
   Future<void> runDeviceCode() async {
     //find first selected modiList item
     int modiIndex =
-        modiList.indexWhere((element) => element['selected'] == true);
-    
+        categories.indexWhere((element) => element['selected'] == true);
+  }
 
+  void changeCategoryOnDevice(Map<String, dynamic> categoryItem) {
+    print(categoryItem);
+    widget.viewModel.service.writeDataToFF3Services(widget.viewModel.deviceId, [
+      126,
+      5,
+      3,
+      categoryItem['value'].toInt(),
+      6,
+      255,
+      255,
+      0,
+      239,
+      33,
+      33,
+      33,
+      33,
+      33,
+      33,
+      33
+    ]).then((value) {
+      if (value) {
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('Error Occured! Modifying Modi'),
+            action: SnackBarAction(
+              label: 'Ok',
+              onPressed: () {
+                //close snackbar
+              },
+            )));
+      }
+    });
+  }
+
+  Future<void> setModiSpeed() async {
+    widget.viewModel.service.writeDataToFF3Services(widget.viewModel.deviceId, [
+      126,
+      4,
+      2,
+      _speed.toInt(),
+      255,
+      255,
+      255,
+      0,
+      239,
+      33,
+      33,
+      33,
+      33,
+      33,
+      33,
+      33
+    ]).then((value) {
+      if (value) {
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('Error Occured !'),
+            action: SnackBarAction(
+              label: 'Ok',
+              onPressed: () {
+                //close snackbar
+              },
+            )));
+      }
+    });
   }
 
   @override
@@ -244,21 +231,16 @@ class _TimerScreenState extends State<_TimerScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(children: [
                   //listview builder for colors in favColors list
-                  for (var i = 0; i < modiList.length; i++)
+                  for (var i = 0; i < categories.length; i++)
                     GestureDetector(
                       onTap: () {
                         setState(() {
                           //set all selected false
-                          for (var i = 0; i < modiList.length; i++) {
-                            modiList[i]['selected'] = false;
+                          for (var i = 0; i < categories.length; i++) {
+                            categories[i]['selected'] = false;
                           }
-                          modiList[i]['selected'] = true;
-                          // changeColor(favColors[i]['color']);
-                          // for (var j = 0; j < favColors.length; j++) {
-                          //   if (j != i) {
-                          //     favColors[j]['selected'] = false;
-                          //   }
-                          // }
+                          categories[i]['selected'] = true;
+                          getSelectedCategoryItems();
                         });
                       },
                       child: Container(
@@ -268,7 +250,7 @@ class _TimerScreenState extends State<_TimerScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: Color(0xffD1D5DB)),
-                          color: modiList[i]['selected']
+                          color: categories[i]['selected']
                               ? Color(0xff2F80ED)
                               : Color(0xff374151),
                         ),
@@ -276,7 +258,7 @@ class _TimerScreenState extends State<_TimerScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 4),
                           child: Text(
-                            modiList[i]['name'],
+                            categories[i]['name'],
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 15,
@@ -289,78 +271,87 @@ class _TimerScreenState extends State<_TimerScreen> {
                     )
                 ]),
               ),
-              SizedBox(
-                height: 20,
-              ),
-              Center(
+              Container(
+                height: 300,
                 child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Center(
-                    child: Row(children: [
-                      for (var i = 0; i < modiList2.length; i++)
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              for (var i = 0; i < modiList2.length; i++) {
-                                modiList2[i]['selected'] = false;
-                              }
-                              modiList2[i]['selected'] = true;
-                            });
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 4),
+                  padding: EdgeInsets.symmetric(vertical: 30),
+                  scrollDirection: Axis.vertical,
+                  child: Column(children: [
+                    //listview builder for colors in favColors list
+                    for (var i = 0; i < categoryItems.length; i++)
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            //set all selected false
+                            for (var i = 0; i < categoryItems.length; i++) {
+                              categoryItems[i]['selected'] = false;
+                            }
+                            categoryItems[i]['selected'] = true;
+                            changeCategoryOnDevice(categoryItems[i]);
+                          });
+                        },
+                        child: Container(
+                          child: Center(
                             child: Text(
-                              modiList2[i]['name'],
+                              categoryItems[i]['name'],
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 15,
+                                fontSize:
+                                    categoryItems[i]['selected'] ? 20 : 15,
                                 fontWeight: FontWeight.bold,
-                                color: modiList2[i]['selected']
-                                    ? Colors.white
-                                    : Color.fromARGB(255, 154, 154, 156),
+                                color: Colors.white,
                               ),
                             ),
                           ),
-                        )
-                    ]),
-                  ),
-                ),
-              ),
-              SingleChildScrollView(
-                padding: EdgeInsets.symmetric(vertical: 30),
-                scrollDirection: Axis.horizontal,
-                child: Row(children: [
-                  //listview builder for colors in favColors list
-                  for (var i = 0; i < modiselection.length; i++)
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          //set all selected false
-                          for (var i = 0; i < modiselection.length; i++) {
-                            modiselection[i]['selected'] = false;
-                          }
-                          modiselection[i]['selected'] = true;
-                        });
-                      },
-                      child: Container(
-                        margin: EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(50),
-                          color: modiselection[i]['selected']
-                              ? Color(0xff2F80ED)
-                              : Color(0xff3C3E43),
+                          padding: EdgeInsets.symmetric(vertical: 5),
+                          margin:
+                              EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(50),
+                            color: categoryItems[i]['selected']
+                                ? Color(0xff2F80ED)
+                                : Color(0xff3C3E43),
+                          ),
+                          width: categoryItems[i]['selected']
+                              ? double.infinity
+                              : 300,
+                          height: 40,
                         ),
-                        width: 90,
-                        height: modiselection[i]['selected'] ? 200 : 150,
-                      ),
-                    )
-                ]),
+                      )
+                  ]),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            isOn ? "An" : "Aus",
+                            style: TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                          CupertinoSwitch(
+                            value: isOn,
+                            onChanged: (value) {
+                              setState(() {
+                                isOn = value;
+                                if (isOn) {
+                                  ledOn();
+                                } else {
+                                  ledOff();
+                                }
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                     const Divider(
                       height: 2,
                       thickness: 0.5,
@@ -390,13 +381,14 @@ class _TimerScreenState extends State<_TimerScreen> {
                               ),
                               Slider(
                                 min: 0,
-                                max: 100,
+                                max: 64,
                                 inactiveColor: Colors.white,
                                 value: _speed,
                                 onChanged: (value) {
                                   setState(() {
                                     _speed = value;
                                   });
+                                  setModiSpeed();
                                 },
                               ),
                             ],
@@ -419,5 +411,153 @@ class _TimerScreenState extends State<_TimerScreen> {
         ),
       ],
     );
+  }
+
+  ledOff() async {
+    print('led off');
+
+    await widget.viewModel.service.writeDataToFF3Services(
+        widget.viewModel.deviceId, [
+      126,
+      4,
+      4,
+      0,
+      0,
+      0,
+      256,
+      0,
+      239,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51
+    ]).then((value) {
+      if (value) {
+        print('led off success');
+        setState(() {
+          isOn = false;
+        });
+      } else {
+        print('led off failed');
+        setState(() {
+          isOn = true;
+        });
+      }
+    });
+  }
+
+  ledOn() async {
+    print('led on');
+
+    await widget.viewModel.service.writeDataToFF3Services(
+        widget.viewModel.deviceId, [
+      126,
+      4,
+      4,
+      240,
+      0,
+      0,
+      256,
+      0,
+      239,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51
+    ]).then((value) {
+      if (value) {
+        print('led on success');
+        setState(() {
+          isOn = true;
+        });
+      } else {
+        print('led on failed');
+        setState(() {
+          isOn = false;
+        });
+      }
+    });
+  }
+
+  List<Map<String, dynamic>> modiselection = [
+    {
+      'color': Color(0xffEB5757),
+      'selected': false,
+      'value': 1,
+      'name': 'Magic Back',
+      'categoryId': 1,
+    },
+    {
+      'color': Color(0xffF2994A),
+      'selected': true,
+      'value': 1,
+      'name': 'Magic Back',
+      'categoryId': 2,
+    },
+    {
+      'color': Color(0xffF2C94C),
+      'selected': false,
+      'value': 1,
+      'name': 'Magic Back',
+      'categoryId': 2,
+    },
+    {
+      'color': Color(0xff219653),
+      'selected': false,
+      'value': 1,
+      'name': 'Magic Back',
+      'categoryId': 6,
+    },
+    {
+      'color': Color(0xff6FCF97),
+      'selected': false,
+      'value': 1,
+      'name': 'Magic Back',
+      'categoryId': 5,
+    },
+    {
+      'color': Color(0xffBB6BD9),
+      'selected': false,
+      'value': 1,
+      'name': 'Magic Back',
+      'categoryId': 4,
+    },
+    {
+      'color': Color(0xff6FCF97),
+      'selected': false,
+      'value': 1,
+      'name': 'Magic Back',
+      'categoryId': 3,
+    },
+    {
+      'color': Color(0xffed1c24),
+      'selected': false,
+      'value': 1,
+      'name': 'Magic Back',
+      'categoryId': 2,
+    },
+  ];
+  List<Map<String, dynamic>> categoryItems = [];
+
+  void getSelectedCategoryItems() {
+    List<Map<String, dynamic>> categoryItem = [];
+    //get first selected item
+    var selectedItem =
+        categories.firstWhere((element) => element['selected'] == true);
+    print(selectedItem);
+    //get all items of selected category
+    categoryItem = modiselection
+        .where((element) => element['categoryId'] == selectedItem['id'])
+        .toList();
+    print(modiselection);
+    setState(() {
+      categoryItems = categoryItem;
+    });
   }
 }

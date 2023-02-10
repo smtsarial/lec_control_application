@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/container.dart';
 import 'package:flutter/src/widgets/framework.dart';
 
-import '../src/ui/global_screens/feedback_screen.dart';
+import '../global_screens/feedback_screen.dart';
 
 class DrawerWidget extends StatefulWidget {
   const DrawerWidget({

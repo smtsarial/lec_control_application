@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:led_blue/src/ble/ble_scanner.dart';
-import 'package:led_blue/widget/drawer_widget.dart';
+import 'package:led_blue/src/widget/drawer_widget.dart';
 import 'package:provider/provider.dart';
 
 import '../ble/ble_logger.dart';
-import '../widgets.dart';
+import '../widget/widgets.dart';
 import 'device_detail/device_detail_screen.dart';
 
 class DeviceListScreen extends StatelessWidget {
@@ -83,7 +83,13 @@ class _DeviceListState extends State<_DeviceList> {
   void _startScanning() {
     setState(() => _isScanInProgress = true);
     final text = _uuidController.text;
+    //scan 5 seconds than stop
+
     widget.startScan(text.isEmpty ? [] : [Uuid.parse(_uuidController.text)]);
+    Future.delayed(Duration(seconds: 5), () {
+      widget.stopScan();
+      setState(() => _isScanInProgress = false);
+    });
   }
 
   @override
@@ -91,94 +97,76 @@ class _DeviceListState extends State<_DeviceList> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: Text('Count: ${widget.scannerState.discoveredDevices.length}'),
+          title: Text(
+              'Geräte in der nähe | Count: ${widget.scannerState.discoveredDevices.length}'),
         ),
         drawer: DrawerWidget(stopScan: widget.stopScan),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // const SizedBox(height: 16),
-                  // const Text('Service UUID (2, 4, 16 bytes):'),
-                  // TextField(
-                  //   controller: _uuidController,
-                  //   enabled: !widget.scannerState.scanIsInProgress,
-                  //   decoration: InputDecoration(
-                  //       errorText:
-                  //           _uuidController.text.isEmpty || _isValidUuidInput()
-                  //               ? null
-                  //               : 'Invalid UUID format'),
-                  //   autocorrect: false,
-                  // ),
-                  // const SizedBox(height: 16),
-                  // Row(
-                  //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  //   children: [
-                  //     ElevatedButton(
-                  //       child: const Text('Scan'),
-                  //       onPressed: !widget.scannerState.scanIsInProgress &&
-                  //               _isValidUuidInput()
-                  //           ? _startScanning
-                  //           : null,
-                  //     ),
-                  //     ElevatedButton(
-                  //       child: const Text('Stop'),
-                  //       onPressed: widget.scannerState.scanIsInProgress
-                  //           ? widget.stopScan
-                  //           : null,
-                  //     ),
-                  //   ],
-                  // ),
-                ],
-              ),
-            ),
-            Center(
-              child: Text(
-                'Geräte in der nähe',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 30,
+        body: Padding(
+          padding: const EdgeInsets.all(15.0),
+          child: Column(
+            children: [
+              Flexible(
+                child: ListView(
+                  children: [
+                    ...widget.scannerState.discoveredDevices
+                        .map(
+                          (device) => Container(
+                            margin: EdgeInsets.symmetric(horizontal: 20),
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                  bottom: BorderSide(color: Colors.grey)),
+                            ),
+                            child: ListTile(
+                              title: Text(device.name),
+                              subtitle:
+                                  Text("${device.id}\nRSSI: ${device.rssi}"),
+                              onTap: () async {
+                                widget.stopScan();
+                                await Navigator.push<void>(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => DeviceDetailScreen(
+                                            device: device)));
+                              },
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ],
                 ),
-                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 40),
-            Flexible(
-              child: ListView(
-                children: [
-                  ...widget.scannerState.discoveredDevices
-                      .map(
-                        (device) => Container(
-                          margin: EdgeInsets.symmetric(horizontal: 32),
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            border:
-                                Border(bottom: BorderSide(color: Colors.grey)),
-                          ),
-                          child: ListTile(
-                            title: Text(device.name),
-                            subtitle:
-                                Text("${device.id}\nRSSI: ${device.rssi}"),
-                            onTap: () async {
-                              widget.stopScan();
-                              await Navigator.push<void>(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          DeviceDetailScreen(device: device)));
-                            },
-                          ),
+              // put refresh button here to refresh the list
+              // if you want to scan again
+              _isScanInProgress
+                  ? Container()
+                  : Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: GestureDetector(
+                        onTap: !widget.scannerState.scanIsInProgress &&
+                                _isValidUuidInput()
+                            ? _startScanning
+                            : null,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text(
+                              'Geräte suchen',
+                              style: TextStyle(fontSize: 20),
+                            ),
+                            SizedBox(width: 10),
+                            Icon(
+                              Icons.refresh,
+                              size: 20,
+                              color: Colors.white,
+                            ),
+                          ],
                         ),
-                      )
-                      .toList(),
-                ],
-              ),
-            ),
-          ],
+                      ),
+                    )
+            ],
+          ),
         ),
       );
 }

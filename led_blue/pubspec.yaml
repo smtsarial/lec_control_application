@@ -65,6 +65,7 @@ flutter:
     - assets/images/landing.png
     - assets/images/logo_star.png
     - assets/images/logo.png
+    - assets/images/record.png
 
   fonts:
     - family: Roboto

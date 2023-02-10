@@ -8,6 +8,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:functional_data/functional_data.dart';
 import 'package:led_blue/src/ble/ble_device_connector.dart';
 import 'package:led_blue/src/ble/ble_device_interactor.dart';
+import 'package:led_blue/src/helpers/HexColor.dart';
 import 'package:provider/provider.dart';
 
 import 'characteristic_interaction_dialog.dart';
@@ -117,10 +118,25 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
 
   ledOff() async {
     print('led off');
-
-    await writeToDevice(
-            [126, 4, 4, 0, 0, 0, 256, 0, 239, 51, 51, 51, 51, 51, 51, 51])
-        .then((value) {
+    await widget.viewModel.service.writeDataToFF3Services(
+        widget.viewModel.deviceId, [
+      126,
+      4,
+      4,
+      0,
+      0,
+      0,
+      256,
+      0,
+      239,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51
+    ]).then((value) {
       if (value) {
         print('led off success');
         setState(() {
@@ -138,9 +154,25 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
   ledOn() async {
     print('led on');
 
-    await writeToDevice(
-            [126, 4, 4, 240, 0, 0, 256, 0, 239, 51, 51, 51, 51, 51, 51, 51])
-        .then((value) {
+    await widget.viewModel.service.writeDataToFF3Services(
+        widget.viewModel.deviceId, [
+      126,
+      4,
+      4,
+      240,
+      0,
+      0,
+      256,
+      0,
+      239,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51
+    ]).then((value) {
       if (value) {
         print('led on success');
         setState(() {
@@ -194,48 +226,6 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
     },
   ];
 
-  Future<bool> writeToDevice(List<int> deviceCode) async {
-    print('CHANGE STARTED');
-    try {
-      List<DiscoveredService> data = await discoverServices();
-      if (discoveredServices.length > 0 && discoveredServices != null) {
-        for (var i = 0; i < discoveredServices.length; i++) {
-          for (var j = 0;
-              j < discoveredServices[i].characteristics.length;
-              j++) {
-            //check uuid of characteristic and write value
-            DiscoveredCharacteristic characteristic =
-                discoveredServices[i].characteristics[j];
-            if (characteristic.characteristicId.toString().contains('fff3')) {
-              print(characteristic.characteristicId.toString());
-              //write value to characteristic with id
-              QualifiedCharacteristic data = QualifiedCharacteristic(
-                  serviceId: discoveredServices[i].serviceId,
-                  characteristicId: characteristic.characteristicId,
-                  deviceId: widget.viewModel.deviceId);
-              try {
-                await widget.viewModel.service
-                    .writeCharacterisiticWithoutResponse(data, deviceCode);
-                setState(() {
-                  isOn = false;
-                });
-                return true;
-              } catch (e) {
-                return false;
-              }
-            }
-          }
-        }
-        return true;
-      } else {
-        return false;
-      }
-    } catch (e) {
-      print(e);
-      return false;
-    }
-  }
-
 // ValueChanged<Color> callback
   void changeColor(Color color) async {
     print(widget.viewModel.connectionStatus);
@@ -243,7 +233,10 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
     if (widget.viewModel.connectionStatus == DeviceConnectionState.connected ||
         widget.viewModel.connectionStatus == DeviceConnectionState.connecting) {
       print('COLOR CHANGE');
-      writeToDevice([
+
+      Snackbar(context, 'Success');
+      await widget.viewModel.service
+          .writeDataToFF3Services(widget.viewModel.deviceId, [
         126,
         7,
         5,
@@ -262,9 +255,11 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
         51
       ]);
     } else {
+      Snackbar(context, 'Success');
       print('colorchange33');
       ledOn();
-      writeToDevice([
+      await widget.viewModel.service
+          .writeDataToFF3Services(widget.viewModel.deviceId, [
         126,
         7,
         5,
@@ -285,10 +280,11 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
     }
   }
 
-  changeBrightness() {
+  changeBrightness() async {
     if (widget.viewModel.connectionStatus == DeviceConnectionState.connected ||
         widget.viewModel.connectionStatus == DeviceConnectionState.connecting) {
-      writeToDevice([
+      await widget.viewModel.service.writeDataToFF3Services(
+          widget.viewModel.deviceId, [
         126,
         4,
         1,
@@ -309,7 +305,8 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
     } else {
       print('BRIGHTNESS change33');
       ledOn();
-      writeToDevice([
+      await widget.viewModel.service.writeDataToFF3Services(
+          widget.viewModel.deviceId, [
         126,
         4,
         1,
@@ -528,36 +525,6 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                       ),
                     )
                 ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
-                    ElevatedButton(
-                      onPressed: !widget.viewModel.deviceConnected
-                          ? widget.viewModel.connect
-                          : null,
-                      child: const Text("Connect"),
-                    ),
-                    ElevatedButton(
-                      onPressed: widget.viewModel.deviceConnected
-                          ? widget.viewModel.disconnect
-                          : null,
-                      child: const Text("Disconnect"),
-                    ),
-                    ElevatedButton(
-                      onPressed: widget.viewModel.deviceConnected
-                          ? discoverServices
-                          : null,
-                      child: const Text("Discover Services"),
-                    ),
-                  ],
-                ),
-              ),
-              _ServiceDiscoveryList(
-                deviceId: widget.viewModel.deviceId,
-                discoveredServices: discoveredServices,
               ),
             ],
           ),

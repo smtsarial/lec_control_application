@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:led_blue/src/ble/ble_scanner.dart';
-import 'package:led_blue/src/widget/drawer_widget.dart';
+import 'package:led_blue/src/helpers/widget/drawer_widget.dart';
 import 'package:provider/provider.dart';
 
 import '../ble/ble_logger.dart';
-import '../widget/widgets.dart';
+import '../helpers/widget/widgets.dart';
 import 'device_detail/device_detail_screen.dart';
 
 class DeviceListScreen extends StatelessWidget {
@@ -119,6 +119,10 @@ class _DeviceListState extends State<_DeviceList> {
                             ),
                             child: ListTile(
                               title: Text(device.name),
+                              trailing: Icon(
+                                Icons.flash_on_outlined,
+                                color: Colors.white,
+                              ),
                               subtitle:
                                   Text("${device.id}\nRSSI: ${device.rssi}"),
                               onTap: () async {

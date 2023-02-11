@@ -15,10 +15,42 @@ class _AboutScreenState extends State<AboutScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('About'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: Container(
-        child: Center(
-          child: Text('About'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Image.asset('assets/images/logo.png'),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Version 1.0.0',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  '© 2021 LED Blue',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

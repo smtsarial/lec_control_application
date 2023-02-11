@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/container.dart';
 import 'package:flutter/src/widgets/framework.dart';
+import 'package:led_blue/src/global_screens/about_screen.dart';
+import 'package:led_blue/src/global_screens/settings_screen.dart';
 
-import '../global_screens/feedback_screen.dart';
+import '../../global_screens/feedback_screen.dart';
 
 class DrawerWidget extends StatefulWidget {
   const DrawerWidget({
@@ -64,12 +66,39 @@ class _DrawerWidgetState extends State<DrawerWidget> {
             onTap: () {
               widget.stopScan();
               Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => FeedbackScreen()));
+                  MaterialPageRoute(builder: (context) => AboutScreen()));
             },
             child: Container(
               child: Center(
                 child: Text(
                   'Über uns',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              margin: EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: Color(0xff3C3E43),
+              ),
+              width: double.infinity,
+              height: 50,
+            ),
+          ),
+          SizedBox(height: 15),
+          GestureDetector(
+            onTap: () {
+              widget.stopScan();
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => SettingsScreen()));
+            },
+            child: Container(
+              child: Center(
+                child: Text(
+                  'Einstellungen',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 17,

@@ -257,6 +257,7 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
     } else {
       Snackbar(context, 'Success');
       print('colorchange33');
+      initilize();
       ledOn();
       await widget.viewModel.service
           .writeDataToFF3Services(widget.viewModel.deviceId, [

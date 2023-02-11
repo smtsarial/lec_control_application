@@ -45,6 +45,7 @@ class BleDeviceInteractor {
       String deviceId, List<int> deviceCode) async {
     //DISCOVER ALL SERVICES
     try {
+      
       List<DiscoveredService> discoveredServices =
           await discoverServices(deviceId);
       if (discoveredServices.length > 0 && discoveredServices != null) {

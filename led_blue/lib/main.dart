@@ -6,6 +6,7 @@ import 'package:led_blue/src/ble/ble_scanner.dart';
 import 'package:led_blue/src/ble/ble_status_monitor.dart';
 import 'package:led_blue/src/ui/ble_status_screen.dart';
 import 'package:led_blue/src/ui/device_list.dart';
+import 'package:led_blue/src/ui/launch_screen.dart';
 import 'package:provider/provider.dart';
 
 import 'src/ble/ble_logger.dart';
@@ -83,6 +84,7 @@ void main() {
             child: const HomeScreen(),
           ),
         ),
+        debugShowCheckedModeBanner: false,
       ),
     ),
   );
@@ -97,6 +99,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) => Consumer<BleStatus?>(
         builder: (_, status, __) {
           if (status == BleStatus.ready) {
+            // return const LaunchScreen();
+
             return const DeviceListScreen();
           } else {
             return BleStatusScreen(status: status ?? BleStatus.unknown);

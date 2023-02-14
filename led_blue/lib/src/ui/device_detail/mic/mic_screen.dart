@@ -1,5 +1,7 @@
-import 'dart:ffi';
 import 'dart:io';
+import 'dart:async';
+import 'dart:math';
+import 'dart:core';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +14,16 @@ import 'package:led_blue/src/ui/device_detail/characteristic_interaction_dialog.
 import 'package:led_blue/src/ui/device_detail/device_interaction_tab.dart';
 import 'package:led_blue/src/ui/device_detail/timer/timer_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:mic_stream/mic_stream.dart';
+import 'package:collection/collection.dart';
+
+enum Command {
+  start,
+  stop,
+  change,
+}
+
+const AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
 
 class MicScreenTab extends StatelessWidget {
   final DiscoveredDevice device;
@@ -82,8 +94,22 @@ class _TimerScreen extends StatefulWidget {
   _TimerScreenState createState() => _TimerScreenState();
 }
 
-class _TimerScreenState extends State<_TimerScreen> {
+class _TimerScreenState extends State<_TimerScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   List<DiscoveredService> discoveredServices = [];
+  Stream? stream;
+  late StreamSubscription listener;
+  List<int>? currentSamples = [];
+  List<int> visibleSamples = [];
+  int? localMax;
+  int? localMin;
+
+  Random rng = new Random();
+  late AnimationController controller;
+  bool isRecording = false;
+  bool memRecordingState = false;
+  late bool isActive;
+  DateTime? startTime;
 
   @override
   void initState() {
@@ -93,6 +119,126 @@ class _TimerScreenState extends State<_TimerScreen> {
       print(e);
     }
     super.initState();
+    WidgetsBinding.instance!.addObserver(this);
+    setState(() {
+      initPlatformState();
+    });
+  }
+
+  // Responsible for switching between recording / idle state
+  void _controlMicStream({Command command: Command.change}) async {
+    switch (command) {
+      case Command.change:
+        _changeListening();
+        break;
+      case Command.start:
+        _startListening();
+        break;
+      case Command.stop:
+        _stopListening();
+        break;
+    }
+  }
+
+  Future<bool> _changeListening() async =>
+      !isRecording ? await _startListening() : _stopListening();
+
+  late int bytesPerSample;
+  late int samplesPerSecond;
+
+  Future<bool> _startListening() async {
+    print("START LISTENING");
+    if (isRecording) return false;
+    // if this is the first time invoking the microphone()
+    // method to get the stream, we don't yet have access
+    // to the sampleRate and bitDepth properties
+    print("wait for stream");
+
+    // Default option. Set to false to disable request permission dialogue
+    MicStream.shouldRequestPermission(true);
+
+    stream = await MicStream.microphone(
+        audioSource: AudioSource.DEFAULT,
+        sampleRate: 1000 * (rng.nextInt(50) + 30),
+        channelConfig: ChannelConfig.CHANNEL_IN_MONO,
+        audioFormat: AUDIO_FORMAT);
+    // after invoking the method for the first time, though, these will be available;
+    // It is not necessary to setup a listener first, the stream only needs to be returned first
+    print(
+        "Start Listening to the microphone, sample rate is ${await MicStream.sampleRate}, bit depth is ${await MicStream.bitDepth}, bufferSize: ${await MicStream.bufferSize}");
+    bytesPerSample = (await MicStream.bitDepth)! ~/ 8;
+    samplesPerSecond = (await MicStream.sampleRate)!.toInt();
+    localMax = null;
+    localMin = null;
+
+    setState(() {
+      isRecording = true;
+      startTime = DateTime.now();
+    });
+    visibleSamples = [];
+    listener = stream!.listen(_calculateSamples);
+    return true;
+  }
+
+  void _calculateSamples(samples) {
+    _calculateWaveSamples(samples);
+  }
+
+  void _calculateWaveSamples(samples) {
+    bool first = true;
+    visibleSamples = [];
+    int tmp = 0;
+    for (int sample in samples) {
+      if (sample > 128) sample -= 255;
+      if (first) {
+        tmp = sample * 128;
+      } else {
+        tmp += sample;
+        visibleSamples.add(tmp);
+
+        localMax ??= visibleSamples.last;
+        localMin ??= visibleSamples.last;
+        localMax = max(localMax!, visibleSamples.last);
+        localMin = min(localMin!, visibleSamples.last);
+
+        tmp = 0;
+      }
+      first = !first;
+    }
+    // print(visibleSamples);
+  }
+
+  bool _stopListening() {
+    if (!isRecording) return false;
+    print("Stop Listening to the microphone");
+    listener.cancel();
+
+    setState(() {
+      isRecording = false;
+      currentSamples = null;
+      startTime = null;
+    });
+    return true;
+  }
+
+  // Platform messages are asynchronous, so we initialize in an async method.
+  Future<void> initPlatformState() async {
+    if (!mounted) return;
+    isActive = true;
+
+    // Statistics(false);
+
+    controller =
+        AnimationController(duration: Duration(seconds: 1), vsync: this)
+          ..addListener(() {
+            if (isRecording) setState(() {});
+          })
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed)
+              controller.reverse();
+            else if (status == AnimationStatus.dismissed) controller.forward();
+          })
+          ..forward();
   }
 
   initilize() async {
@@ -110,46 +256,6 @@ class _TimerScreenState extends State<_TimerScreen> {
     return result;
   }
 
-  Future<bool> writeToDevice(List<int> deviceCode) async {
-    print('CHANGE STARTED');
-    try {
-      List<DiscoveredService> data = await discoverServices();
-      if (discoveredServices.length > 0 && discoveredServices != null) {
-        for (var i = 0; i < discoveredServices.length; i++) {
-          for (var j = 0;
-              j < discoveredServices[i].characteristics.length;
-              j++) {
-            //check uuid of characteristic and write value
-            DiscoveredCharacteristic characteristic =
-                discoveredServices[i].characteristics[j];
-            if (characteristic.characteristicId.toString().contains('fff3')) {
-              print(characteristic.characteristicId.toString());
-              //write value to characteristic with id
-              QualifiedCharacteristic data = QualifiedCharacteristic(
-                  serviceId: discoveredServices[i].serviceId,
-                  characteristicId: characteristic.characteristicId,
-                  deviceId: widget.viewModel.deviceId);
-              try {
-                await widget.viewModel.service
-                    .writeCharacterisiticWithoutResponse(data, deviceCode);
-
-                return true;
-              } catch (e) {
-                return false;
-              }
-            }
-          }
-        }
-        return true;
-      } else {
-        return false;
-      }
-    } catch (e) {
-      print(e);
-      return false;
-    }
-  }
-
   Future<void> runDeviceCode() async {
     //find first selected modiList item
   }
@@ -165,7 +271,10 @@ class _TimerScreenState extends State<_TimerScreen> {
                 padding:
                     const EdgeInsetsDirectional.only(top: 8.0, bottom: 16.0),
                 child: Text(
-                  "Mic",
+                  "Mic" +
+                      (isRecording ? " (Recording)" : "***") +
+                      " " +
+                      localMin.toString(),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 30,
@@ -176,17 +285,29 @@ class _TimerScreenState extends State<_TimerScreen> {
               SizedBox(
                 height: 150,
               ),
+              Text(localMax.toString()),
+              CustomPaint(
+                painter: WavePainter(
+                  samples: visibleSamples,
+                  color: Colors.blue,
+                  localMax: localMax,
+                  localMin: localMin,
+                  context: context,
+                ),
+              ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        _controlMicStream();
+                      },
                       child: Container(
                           height: 200,
                           width: 200,
                           decoration: BoxDecoration(
-                              color: Colors.blue,
+                              color: isRecording ? Colors.green : Colors.red,
                               borderRadius: BorderRadius.circular(100),
                               boxShadow: [
                                 BoxShadow(
@@ -201,5 +322,76 @@ class _TimerScreenState extends State<_TimerScreen> {
         ),
       ],
     );
+  }
+}
+
+class WavePainter extends CustomPainter {
+  int? localMax;
+  int? localMin;
+  List<int>? samples;
+  late List<Offset> points;
+  Color? color;
+  BuildContext? context;
+  Size? size;
+
+  // Set max val possible in stream, depending on the config
+  // int absMax = 255*4; //(AUDIO_FORMAT == AudioFormat.ENCODING_PCM_8BIT) ? 127 : 32767;
+  // int absMin; //(AUDIO_FORMAT == AudioFormat.ENCODING_PCM_8BIT) ? 127 : 32767;
+
+  WavePainter(
+      {this.samples, this.color, this.context, this.localMax, this.localMin});
+
+  @override
+  void paint(Canvas canvas, Size? size) {
+    this.size = context!.size;
+    size = this.size;
+    Paint paint = new Paint()
+      ..color = color!
+      ..strokeWidth = 4.0
+      ..style = PaintingStyle.stroke;
+
+    if (samples!.length == 0) return;
+
+    points = toPoints(samples);
+
+    Path path = new Path();
+    path.addPolygon(points, false);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldPainting) => true;
+
+  // Maps a list of ints and their indices to a list of points on a cartesian grid
+  List<Offset> toPoints(List<int>? samples) {
+    var sum = samples!.reduce((value, current) => value + current);
+
+    print(sum / samples!.length);
+
+    // print('toPoints(' + (samples!.toList()).toString() + ')');
+    List<Offset> points = [];
+    if (samples == null)
+      samples = List<int>.filled(size!.width.toInt(), (0.5).toInt());
+    double pixelsPerSample = size!.width / samples.length;
+    for (int i = 0; i < samples.length; i++) {
+      var point = Offset(
+          i * pixelsPerSample,
+          0.5 *
+              size!.height *
+              pow((samples[i] - localMin!) / (localMax! - localMin!), 5));
+
+      points.add(point);
+    }
+
+    // print('points: $points');
+    return points;
+  }
+
+  double project(int val, int max, double height) {
+    print(height);
+    double waveHeight =
+        (max == 0) ? val.toDouble() : (val / max) * 0.5 * height;
+    return waveHeight + 0.5 * height;
   }
 }

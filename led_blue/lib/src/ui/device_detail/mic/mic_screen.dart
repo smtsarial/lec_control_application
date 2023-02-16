@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:math';
 import 'dart:core';
-
+import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -23,7 +23,7 @@ enum Command {
   change,
 }
 
-const AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
+const AUDIO_FORMAT = AudioFormat.ENCODING_PCM_8BIT;
 
 class MicScreenTab extends StatelessWidget {
   final DiscoveredDevice device;
@@ -182,6 +182,28 @@ class _TimerScreenState extends State<_TimerScreen>
 
   void _calculateSamples(samples) {
     _calculateWaveSamples(samples);
+    var points = toPoints(visibleSamples);
+    // print('samet' + points[440].direction.toString());
+    Path path = new Path();
+    path.addPolygon(points, false);
+    var brightness = path.getBounds().center.dy.toInt();
+    if (brightness < 30) {
+      brightness = 0;
+    } else if (brightness < 200 && brightness > 150) {
+      brightness = 64;
+    } else if (brightness < 150 && brightness > 120) {
+      brightness = 50;
+    } else if (brightness < 120 && brightness > 100) {
+      brightness = 40;
+    } else if (brightness < 100 && brightness > 80) {
+      brightness = 30;
+    } else if (brightness < 80 && brightness > 60) {
+      brightness = 20;
+    } else if (brightness < 60 && brightness > 30) {
+      brightness = 10;
+    }
+    print(brightness);
+    changeBrightness(brightness);
   }
 
   void _calculateWaveSamples(samples) {
@@ -198,14 +220,33 @@ class _TimerScreenState extends State<_TimerScreen>
 
         localMax ??= visibleSamples.last;
         localMin ??= visibleSamples.last;
+
         localMax = max(localMax!, visibleSamples.last);
         localMin = min(localMin!, visibleSamples.last);
-
         tmp = 0;
       }
       first = !first;
     }
-    // print(visibleSamples);
+  }
+
+  List<Offset> toPoints(List<int>? samples) {
+    var sum = samples!.reduce((value, current) => value + current);
+    var avg = sum / samples.length;
+    // print('avg: $avg');
+    List<Offset> points = [];
+    if (samples == null)
+      samples = List<int>.filled(context.size!.width.toInt(), (0.5).toInt());
+    double pixelsPerSample = context.size!.width / samples.length;
+    for (int i = 0; i < samples.length; i++) {
+      var dy = 0.5 *
+          context.size!.height *
+          pow((samples[i] - localMin!) / (localMax! - localMin!), 5);
+      var point = Offset(i * pixelsPerSample, dy);
+      points.add(point);
+    }
+
+    // print('points: $points');
+    return points;
   }
 
   bool _stopListening() {
@@ -271,10 +312,7 @@ class _TimerScreenState extends State<_TimerScreen>
                 padding:
                     const EdgeInsetsDirectional.only(top: 8.0, bottom: 16.0),
                 child: Text(
-                  "Mic" +
-                      (isRecording ? " (Recording)" : "***") +
-                      " " +
-                      localMin.toString(),
+                  "Mic",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 30,
@@ -282,13 +320,22 @@ class _TimerScreenState extends State<_TimerScreen>
                   ),
                 ),
               ),
-              SizedBox(
-                height: 150,
+              Text(
+                (isRecording ? " (Recording)" : "---"),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              Text(localMax.toString()),
+              SizedBox(
+                height: 130,
+              ),
               CustomPaint(
                 painter: WavePainter(
                   samples: visibleSamples,
+                  // color: Color.fromRGBO(visibleSamples[0], visibleSamples[400],
+                  //     visibleSamples.last, 1),
                   color: Colors.blue,
                   localMax: localMax,
                   localMin: localMin,
@@ -323,6 +370,113 @@ class _TimerScreenState extends State<_TimerScreen>
       ],
     );
   }
+
+  changeBrightness(int _brightness) async {
+    if (widget.viewModel.connectionStatus == DeviceConnectionState.connected ||
+        widget.viewModel.connectionStatus == DeviceConnectionState.connecting) {
+      print('BRIGHTNESS changed11');
+      await widget.viewModel.service.writeDataToFF3Services(
+          widget.viewModel.deviceId, [
+        126,
+        4,
+        1,
+        _brightness.toInt(),
+        1,
+        255,
+        255,
+        0,
+        239,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33
+      ]);
+    } else {
+      print('BRIGHTNESS changed');
+      ledOn();
+      await widget.viewModel.service.writeDataToFF3Services(
+          widget.viewModel.deviceId, [
+        126,
+        4,
+        1,
+        _brightness.toInt(),
+        1,
+        255,
+        255,
+        0,
+        239,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33
+      ]);
+    }
+  }
+
+  ledOff() async {
+    print('led off');
+    await widget.viewModel.service.writeDataToFF3Services(
+        widget.viewModel.deviceId, [
+      126,
+      4,
+      4,
+      0,
+      0,
+      0,
+      256,
+      0,
+      239,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51
+    ]).then((value) {
+      if (value) {
+        print('led off success');
+      } else {
+        print('led off failed');
+      }
+    });
+  }
+
+  ledOn() async {
+    print('led on');
+
+    await widget.viewModel.service.writeDataToFF3Services(
+        widget.viewModel.deviceId, [
+      126,
+      4,
+      4,
+      240,
+      0,
+      0,
+      256,
+      0,
+      239,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51,
+      51
+    ]).then((value) {
+      if (value) {
+        print('led on success');
+      } else {
+        print('led on failed');
+      }
+    });
+  }
 }
 
 class WavePainter extends CustomPainter {
@@ -351,11 +505,11 @@ class WavePainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     if (samples!.length == 0) return;
-
     points = toPoints(samples);
-
+    // print('samet' + points[440].direction.toString());
     Path path = new Path();
     path.addPolygon(points, false);
+    // print(path.getBounds().center.dy);
 
     canvas.drawPath(path, paint);
   }
@@ -366,32 +520,21 @@ class WavePainter extends CustomPainter {
   // Maps a list of ints and their indices to a list of points on a cartesian grid
   List<Offset> toPoints(List<int>? samples) {
     var sum = samples!.reduce((value, current) => value + current);
-
-    print(sum / samples!.length);
-
-    // print('toPoints(' + (samples!.toList()).toString() + ')');
+    var avg = sum / samples.length;
+    // print('avg: $avg');
     List<Offset> points = [];
     if (samples == null)
       samples = List<int>.filled(size!.width.toInt(), (0.5).toInt());
     double pixelsPerSample = size!.width / samples.length;
     for (int i = 0; i < samples.length; i++) {
-      var point = Offset(
-          i * pixelsPerSample,
-          0.5 *
-              size!.height *
-              pow((samples[i] - localMin!) / (localMax! - localMin!), 5));
-
+      var dy = 0.5 *
+          size!.height *
+          pow((samples[i] - localMin!) / (localMax! - localMin!), 1);
+      var point = Offset(i * pixelsPerSample, dy);
       points.add(point);
     }
 
     // print('points: $points');
     return points;
-  }
-
-  double project(int val, int max, double height) {
-    print(height);
-    double waveHeight =
-        (max == 0) ? val.toDouble() : (val / max) * 0.5 * height;
-    return waveHeight + 0.5 * height;
   }
 }

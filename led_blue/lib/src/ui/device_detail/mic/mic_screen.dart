@@ -354,7 +354,7 @@ class _TimerScreenState extends State<_TimerScreen>
                           height: 200,
                           width: 200,
                           decoration: BoxDecoration(
-                              color: isRecording ? Colors.green : Colors.red,
+                              color: isRecording ? Colors.green : Colors.grey,
                               borderRadius: BorderRadius.circular(100),
                               boxShadow: [
                                 BoxShadow(

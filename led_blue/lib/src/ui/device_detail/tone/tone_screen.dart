@@ -1,6 +1,6 @@
-import 'dart:ffi';
 import 'dart:io';
 
+import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -14,6 +14,8 @@ import 'package:led_blue/src/ble/ble_device_interactor.dart';
 import 'package:led_blue/src/ui/device_detail/characteristic_interaction_dialog.dart';
 import 'package:led_blue/src/ui/device_detail/device_interaction_tab.dart';
 import 'package:led_blue/src/ui/device_detail/timer/timer_screen.dart';
+import 'package:led_blue/src/ui/device_detail/tone/chat_bubble.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 class ToneScreenTab extends StatelessWidget {
@@ -64,7 +66,6 @@ class ToneScreenViewModel extends $TimerScreenViewModel {
       connectionStatus == DeviceConnectionState.connected;
 
   Future<void> connect() async {
-    print('connected');
     await deviceConnector.connect(deviceId);
   }
 
@@ -86,161 +87,52 @@ class _TimerScreen extends StatefulWidget {
 }
 
 class _TimerScreenState extends State<_TimerScreen> {
-  List<DiscoveredService> discoveredServices = [];
-  bool isOn = false;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
-  String? _fileName;
-  String? _saveAsFileName;
-  List<PlatformFile>? _paths;
-  String? _directoryPath;
-  String? _extension;
-  bool _isLoading = false;
-  bool _userAborted = false;
-  bool _multiPick = false;
-  FileType _pickingType = FileType.any;
-  TextEditingController _controller = TextEditingController();
+  late final RecorderController recorderController;
 
-  void _pickFiles() async {
-    _resetState();
-    try {
-      _directoryPath = null;
-      _paths = (await FilePicker.platform.pickFiles(
-        type: _pickingType,
-        allowMultiple: _multiPick,
-        onFileLoading: (FilePickerStatus status) => print(status),
-        allowedExtensions: (_extension?.isNotEmpty ?? false)
-            ? _extension?.replaceAll(' ', '').split(',')
-            : null,
-      ))
-          ?.files;
-    } on PlatformException catch (e) {
-      _logException('Unsupported operation' + e.toString());
-    } catch (e) {
-      _logException(e.toString());
-    }
-    if (!mounted) return;
-    setState(() {
-      _isLoading = false;
-      _fileName =
-          _paths != null ? _paths!.map((e) => e.name).toString() : '...';
-      _userAborted = _paths == null;
-    });
-  }
-
-  void _clearCachedFiles() async {
-    _resetState();
-    try {
-      bool? result = await FilePicker.platform.clearTemporaryFiles();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: result! ? Colors.green : Colors.red,
-          content: Text((result
-              ? 'Temporary files removed with success.'
-              : 'Failed to clean temporary files')),
-        ),
-      );
-    } on PlatformException catch (e) {
-      _logException('Unsupported operation' + e.toString());
-    } catch (e) {
-      _logException(e.toString());
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _selectFolder() async {
-    _resetState();
-    try {
-      String? path = await FilePicker.platform.getDirectoryPath();
-      setState(() {
-        _directoryPath = path;
-        _userAborted = path == null;
-      });
-    } on PlatformException catch (e) {
-      _logException('Unsupported operation' + e.toString());
-    } catch (e) {
-      _logException(e.toString());
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _saveFile() async {
-    _resetState();
-    try {
-      String? fileName = await FilePicker.platform.saveFile(
-        allowedExtensions: (_extension?.isNotEmpty ?? false)
-            ? _extension?.replaceAll(' ', '').split(',')
-            : null,
-        type: _pickingType,
-      );
-      setState(() {
-        _saveAsFileName = fileName;
-        _userAborted = fileName == null;
-      });
-    } on PlatformException catch (e) {
-      _logException('Unsupported operation' + e.toString());
-    } catch (e) {
-      _logException(e.toString());
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _logException(String message) {
-    print(message);
-    _scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
-    _scaffoldMessengerKey.currentState?.showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
-  }
-
-  void _resetState() {
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-      _directoryPath = null;
-      _fileName = null;
-      _paths = null;
-      _saveAsFileName = null;
-      _userAborted = false;
-    });
-  }
+  String? path;
+  String? musicFile;
+  bool isRecording = false;
+  bool isRecordingCompleted = false;
+  bool isLoading = true;
+  late Directory appDirectory;
 
   @override
   void initState() {
-    try {
-      _controller.addListener(() => _extension = _controller.text);
-      initilize();
-    } catch (e) {
-      print(e);
-    }
-
     super.initState();
+    _getDir();
+    _initialiseControllers();
   }
 
-  initilize() async {
-    await widget.viewModel.connect().then((value) async {
-      //discoverServices();
-    });
+  void _getDir() async {
+    appDirectory = await getApplicationDocumentsDirectory();
+    path = "${appDirectory.path}/recording.m4a";
+    isLoading = false;
+    setState(() {});
   }
 
-  Future<List<DiscoveredService>> discoverServices() async {
-    final result = await widget.viewModel.discoverServices();
-
-    setState(() {
-      discoveredServices = result;
-    });
-    return result;
+  void _initialiseControllers() {
+    recorderController = RecorderController()
+      ..androidEncoder = AndroidEncoder.aac
+      ..androidOutputFormat = AndroidOutputFormat.mpeg4
+      ..iosEncoder = IosEncoder.kAudioFormatMPEG4AAC
+      ..sampleRate = 44100;
   }
 
-  Color pickerColor = Color(0xff219653);
-  Color currentColor = Color(0xff219653);
+  void _pickFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      musicFile = result.files.single.path;
+      setState(() {});
+    } else {
+      debugPrint("File not picked");
+    }
+  }
+
+  @override
+  void dispose() {
+    recorderController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -249,169 +141,109 @@ class _TimerScreenState extends State<_TimerScreen> {
         SliverList(
           delegate: SliverChildListDelegate.fixed(
             [
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 10.0, right: 10.0),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20.0),
-                          child: DropdownButton<FileType>(
-                              hint: const Text('LOAD PATH FROM'),
-                              value: _pickingType,
-                              items: FileType.values
-                                  .map((fileType) => DropdownMenuItem<FileType>(
-                                        child: Text(fileType.toString()),
-                                        value: fileType,
-                                      ))
-                                  .toList(),
-                              onChanged: (value) => setState(() {
-                                    _pickingType = value!;
-                                    if (_pickingType != FileType.custom) {
-                                      _controller.text = _extension = '';
-                                    }
-                                  })),
-                        ),
-                        ConstrainedBox(
-                          constraints:
-                              const BoxConstraints.tightFor(width: 100.0),
-                          child: _pickingType == FileType.custom
-                              ? TextFormField(
-                                  maxLength: 15,
-                                  autovalidateMode: AutovalidateMode.always,
-                                  controller: _controller,
-                                  decoration: InputDecoration(
-                                    labelText: 'File extension',
-                                  ),
-                                  keyboardType: TextInputType.text,
-                                  textCapitalization: TextCapitalization.none,
-                                )
-                              : const SizedBox(),
-                        ),
-                        ConstrainedBox(
-                          constraints:
-                              const BoxConstraints.tightFor(width: 200.0),
-                          child: SwitchListTile.adaptive(
-                            title: Text(
-                              'Pick multiple files',
-                              textAlign: TextAlign.right,
-                            ),
-                            onChanged: (bool value) =>
-                                setState(() => _multiPick = value),
-                            value: _multiPick,
-                          ),
-                        ),
-                        Padding(
-                          padding:
-                              const EdgeInsets.only(top: 50.0, bottom: 20.0),
-                          child: Column(
-                            children: <Widget>[
-                              ElevatedButton(
-                                onPressed: () => _pickFiles(),
-                                child: Text(
-                                    _multiPick ? 'Pick files' : 'Pick file'),
-                              ),
-                              SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: () => _selectFolder(),
-                                child: const Text('Pick folder'),
-                              ),
-                              SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: () => _saveFile(),
-                                child: const Text('Save file'),
-                              ),
-                              SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: () => _clearCachedFiles(),
-                                child: const Text('Clear temporary files'),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Builder(
-                          builder: (BuildContext context) => _isLoading
-                              ? Padding(
-                                  padding: const EdgeInsets.only(bottom: 10.0),
-                                  child: const CircularProgressIndicator(),
-                                )
-                              : _userAborted
-                                  ? Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 10.0),
-                                      child: const Text(
-                                        'User has aborted the dialog',
-                                      ),
-                                    )
-                                  : _directoryPath != null
-                                      ? ListTile(
-                                          title: const Text('Directory path'),
-                                          subtitle: Text(_directoryPath!),
-                                        )
-                                      : _paths != null
-                                          ? Container(
-                                              padding: const EdgeInsets.only(
-                                                  bottom: 30.0),
-                                              height: MediaQuery.of(context)
-                                                      .size
-                                                      .height *
-                                                  0.50,
-                                              child: Scrollbar(
-                                                  child: ListView.separated(
-                                                itemCount: _paths != null &&
-                                                        _paths!.isNotEmpty
-                                                    ? _paths!.length
-                                                    : 1,
-                                                itemBuilder:
-                                                    (BuildContext context,
-                                                        int index) {
-                                                  final bool isMultiPath =
-                                                      _paths != null &&
-                                                          _paths!.isNotEmpty;
-                                                  final String name =
-                                                      'File $index: ' +
-                                                          (isMultiPath
-                                                              ? _paths!
-                                                                      .map((e) =>
-                                                                          e.name)
-                                                                      .toList()[
-                                                                  index]
-                                                              : _fileName ??
-                                                                  '...');
-                                                  final path = kIsWeb
-                                                      ? null
-                                                      : _paths!
-                                                          .map((e) => e.path)
-                                                          .toList()[index]
-                                                          .toString();
-
-                                                  return ListTile(
-                                                    title: Text(
-                                                      name,
-                                                    ),
-                                                    subtitle: Text(path ?? ''),
-                                                  );
-                                                },
-                                                separatorBuilder:
-                                                    (BuildContext context,
-                                                            int index) =>
-                                                        const Divider(),
-                                              )),
-                                            )
-                                          : _saveAsFileName != null
-                                              ? ListTile(
-                                                  title:
-                                                      const Text('Save file'),
-                                                  subtitle:
-                                                      Text(_saveAsFileName!),
-                                                )
-                                              : const SizedBox(),
-                        ),
-                      ],
-                    ),
+              Padding(
+                padding:
+                    const EdgeInsetsDirectional.only(top: 8.0, bottom: 16.0),
+                child: Text(
+                  "Modi auswählen",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
                   ),
+                ),
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(),
+                          )
+                        : SafeArea(
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 20),
+                                if (isRecordingCompleted)
+                                  WaveBubble(
+                                    path: path,
+                                    isSender: true,
+                                    appDirectory: appDirectory,
+                                  ),
+                                if (musicFile != null)
+                                  WaveBubble(
+                                    path: musicFile,
+                                    isSender: true,
+                                    appDirectory: appDirectory,
+                                  ),
+                                SafeArea(
+                                  child: Row(
+                                    children: [
+                                      AnimatedSwitcher(
+                                        duration:
+                                            const Duration(milliseconds: 200),
+                                        child: isRecording
+                                            ? AudioWaveforms(
+                                                enableGesture: true,
+                                                size: const Size(
+                                                  double.infinity,
+                                                  50,
+                                                ),
+                                                recorderController:
+                                                    recorderController,
+                                                waveStyle: const WaveStyle(
+                                                  waveColor: Colors.white,
+                                                  extendWaveform: true,
+                                                  showMiddleLine: false,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          12.0),
+                                                  color:
+                                                      const Color(0xFF1E1B26),
+                                                ),
+                                                padding: const EdgeInsets.only(
+                                                    left: 18),
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 15),
+                                              )
+                                            : Container(),
+                                      ),
+                                      IconButton(
+                                        onPressed: _pickFile,
+                                        icon: Icon(
+                                          Icons.adaptive.share,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: _refreshWave,
+                                        icon: Icon(
+                                          isRecording
+                                              ? Icons.refresh
+                                              : Icons.send,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      IconButton(
+                                        onPressed: _startOrStopRecording,
+                                        icon: Icon(isRecording
+                                            ? Icons.stop
+                                            : Icons.mic),
+                                        color: Colors.white,
+                                        iconSize: 28,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ],
                 ),
               ),
             ],
@@ -419,5 +251,33 @@ class _TimerScreenState extends State<_TimerScreen> {
         ),
       ],
     );
+  }
+
+  void _startOrStopRecording() async {
+    try {
+      if (isRecording) {
+        recorderController.reset();
+
+        final path = await recorderController.stop(false);
+
+        if (path != null) {
+          isRecordingCompleted = true;
+          debugPrint(path);
+          debugPrint("Recorded file size: ${File(path).lengthSync()}");
+        }
+      } else {
+        await recorderController.record(path: path!);
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    } finally {
+      setState(() {
+        isRecording = !isRecording;
+      });
+    }
+  }
+
+  void _refreshWave() {
+    if (isRecording) recorderController.refresh();
   }
 }

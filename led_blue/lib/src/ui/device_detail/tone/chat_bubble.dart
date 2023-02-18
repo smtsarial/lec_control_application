@@ -75,8 +75,8 @@ class _WaveBubbleState extends State<WaveBubble> {
   late StreamSubscription<PlayerState> playerStateSubscription;
 
   final playerWaveStyle = const PlayerWaveStyle(
-    fixedWaveColor: Colors.white54,
-    liveWaveColor: Colors.white,
+    fixedWaveColor: Colors.blueAccent,
+    liveWaveColor: Colors.blueAccent,
     spacing: 6,
   );
 
@@ -87,14 +87,16 @@ class _WaveBubbleState extends State<WaveBubble> {
     _preparePlayer();
     playerStateSubscription = controller.onPlayerStateChanged.listen((_) {
       setState(() {});
+
+      print('data' + _.toString());
     });
     controller.onExtractionProgress.listen((progress) {
       print(progress);
     });
     controller.onCurrentExtractedWaveformData.listen((data) {
-      // print('data' + data.toString());
+      print('data' + data.toString());
     });
-    print('object' + controller.waveformData.toString());
+    print('object111' + controller.waveformData.toString());
   }
 
   void _preparePlayer() async {
@@ -120,11 +122,13 @@ class _WaveBubbleState extends State<WaveBubble> {
       print('object');
       controller
           .extractWaveformData(
-            path: widget.path ?? file!.path,
-            noOfSamples:
-                playerWaveStyle.getSamplesForWidth(widget.width ?? 200),
-          )
-          .then((waveformData) => debugPrint(waveformData.toString()));
+        path: widget.path ?? file!.path,
+        noOfSamples: playerWaveStyle.getSamplesForWidth(widget.width ?? 200),
+      )
+          .then((waveformData) {
+        debugPrint(waveformData.toString());
+        print('idk' + waveformData.toString());
+      });
     }
   }
 
@@ -138,56 +142,88 @@ class _WaveBubbleState extends State<WaveBubble> {
   @override
   Widget build(BuildContext context) {
     return widget.path != null || file?.path != null
-        ? Align(
-            alignment:
-                widget.isSender ? Alignment.centerRight : Alignment.centerLeft,
-            child: Container(
-              padding: EdgeInsets.only(
-                bottom: 6,
-                right: widget.isSender ? 0 : 10,
-                top: 6,
-              ),
-              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: widget.isSender
-                    ? const Color(0xFF276bfd)
-                    : const Color(0xFF343145),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!controller.playerState.isStopped)
-                    IconButton(
-                      onPressed: () async {
-                        controller.playerState.isPlaying
-                            ? await controller.pausePlayer()
-                            : await controller.startPlayer(
-                                finishMode: FinishMode.loop,
-                              );
-                      },
-                      icon: Icon(
-                        controller.playerState.isPlaying
-                            ? Icons.stop
-                            : Icons.play_arrow,
-                      ),
-                      color: Colors.white,
-                      splashColor: Colors.transparent,
-                      highlightColor: Colors.transparent,
+        ? Container(
+            padding: EdgeInsets.only(
+              bottom: 6,
+              right: widget.isSender ? 0 : 10,
+              top: 6,
+            ),
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: widget.isSender
+                  ? const Color(0xFF276bfd)
+                  : const Color(0xFF343145),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!controller.playerState.isStopped)
+                  IconButton(
+                    onPressed: () async {
+                      controller.playerState.isPlaying
+                          ? await controller.pausePlayer()
+                          : await controller.startPlayer(
+                              finishMode: FinishMode.loop,
+                            );
+                    },
+                    icon: Icon(
+                      controller.playerState.isPlaying
+                          ? Icons.stop
+                          : Icons.play_arrow,
                     ),
-                  AudioFileWaveforms(
-                    size: Size(MediaQuery.of(context).size.width / 2, 70),
-                    playerController: controller,
-                    waveformType: widget.index?.isOdd ?? false
-                        ? WaveformType.fitWidth
-                        : WaveformType.long,
-                    playerWaveStyle: playerWaveStyle,
+                    color: Colors.white,
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
                   ),
-                  if (widget.isSender) const SizedBox(width: 10),
-                ],
-              ),
+                AudioFileWaveforms(
+                  size: Size(MediaQuery.of(context).size.width - 85, 90),
+                  playerController: controller,
+                  waveformType: widget.index?.isOdd ?? false
+                      ? WaveformType.long
+                      : WaveformType.long,
+                  playerWaveStyle: playerWaveStyle,
+                ),
+                if (widget.isSender) const SizedBox(width: 10),
+              ],
             ),
           )
         : const SizedBox.shrink();
   }
+
+
+//  IT WILL BE A OUR SAMPLE CALCULATION FOR DETERMINING THE DB OF THE CURRENT AUDIO 
+  // void _drawWave(Size size, Canvas canvas) {
+  //   final length = waveformData.length;
+  //   if (cachedAudioProgress != audioProgress) {
+  //     pushBack();
+  //   }
+  //   for (int i = 0; i < length; i++) {
+  //     canvas.drawLine(
+  //       Offset(
+  //         i * spacing +
+  //             dragOffset.dx -
+  //             totalBackDistance.dx +
+  //             emptySpace +
+  //             (waveformType.isFitWidth ? 0 : size.width / 2),
+  //         size.height / 2 +
+  //             (showBottom
+  //                 ? ((waveformData[i] * animValue)) * scaleFactor * scrollScale
+  //                 : 0),
+  //       ),
+  //       Offset(
+  //         i * spacing +
+  //             dragOffset.dx -
+  //             totalBackDistance.dx +
+  //             emptySpace +
+  //             (waveformType.isFitWidth ? 0 : size.width / 2),
+  //         size.height / 2 +
+  //             (showTop
+  //                 ? -((waveformData[i] * animValue)) * scaleFactor * scrollScale
+  //                 : 0),
+  //       ),
+  //       i < audioProgress * length ? liveWavePaint : fixedWavePaint,
+  //     );
+  //   }
+  // }
 }

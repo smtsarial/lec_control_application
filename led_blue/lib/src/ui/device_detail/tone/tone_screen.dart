@@ -90,7 +90,7 @@ class _TimerScreenState extends State<_TimerScreen> {
   late final RecorderController recorderController;
 
   String? path;
-  String? musicFile;
+  List<String> musicFile = [];
   bool isRecording = false;
   bool isRecordingCompleted = false;
   bool isLoading = true;
@@ -121,7 +121,7 @@ class _TimerScreenState extends State<_TimerScreen> {
   void _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null) {
-      musicFile = result.files.single.path;
+      musicFile.add(result.files.single.path.toString());
       setState(() {});
     } else {
       debugPrint("File not picked");
@@ -141,17 +141,39 @@ class _TimerScreenState extends State<_TimerScreen> {
         SliverList(
           delegate: SliverChildListDelegate.fixed(
             [
-              Padding(
-                padding:
-                    const EdgeInsetsDirectional.only(top: 8.0, bottom: 16.0),
-                child: Text(
-                  "Modi auswählen",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // IconButton(
+                  //   onPressed: _pickFile,
+                  //   icon: Icon(
+                  //     Icons.adaptive.share,
+                  //     color: Colors.white,
+                  //   ),
+                  // ),
+                  Container(),
+                  Text(
+                    "Tone",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
+                  // IconButton(
+                  //   onPressed: _startOrStopRecording,
+                  //   icon: Icon(isRecording ? Icons.stop : Icons.mic),
+                  //   color: Colors.white,
+                  //   iconSize: 28,
+                  // ),
+                  IconButton(
+                    onPressed: _pickFile,
+                    icon: Icon(
+                      Icons.adaptive.share,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -171,75 +193,13 @@ class _TimerScreenState extends State<_TimerScreen> {
                                     isSender: true,
                                     appDirectory: appDirectory,
                                   ),
-                                if (musicFile != null)
-                                  WaveBubble(
-                                    path: musicFile,
-                                    isSender: true,
-                                    appDirectory: appDirectory,
-                                  ),
-                                SafeArea(
-                                  child: Row(
-                                    children: [
-                                      AnimatedSwitcher(
-                                        duration:
-                                            const Duration(milliseconds: 200),
-                                        child: isRecording
-                                            ? AudioWaveforms(
-                                                enableGesture: true,
-                                                size: const Size(
-                                                  double.infinity,
-                                                  50,
-                                                ),
-                                                recorderController:
-                                                    recorderController,
-                                                waveStyle: const WaveStyle(
-                                                  waveColor: Colors.white,
-                                                  extendWaveform: true,
-                                                  showMiddleLine: false,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          12.0),
-                                                  color:
-                                                      const Color(0xFF1E1B26),
-                                                ),
-                                                padding: const EdgeInsets.only(
-                                                    left: 18),
-                                                margin:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 15),
-                                              )
-                                            : Container(),
-                                      ),
-                                      IconButton(
-                                        onPressed: _pickFile,
-                                        icon: Icon(
-                                          Icons.adaptive.share,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        onPressed: _refreshWave,
-                                        icon: Icon(
-                                          isRecording
-                                              ? Icons.refresh
-                                              : Icons.send,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      IconButton(
-                                        onPressed: _startOrStopRecording,
-                                        icon: Icon(isRecording
-                                            ? Icons.stop
-                                            : Icons.mic),
-                                        color: Colors.white,
-                                        iconSize: 28,
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                if (musicFile.isNotEmpty)
+                                  for (var i = 0; i < musicFile.length; i++)
+                                    WaveBubble(
+                                      path: musicFile[i],
+                                      isSender: false,
+                                      appDirectory: appDirectory,
+                                    ),
                               ],
                             ),
                           ),

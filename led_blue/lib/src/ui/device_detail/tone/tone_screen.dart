@@ -15,6 +15,7 @@ import 'package:led_blue/src/ui/device_detail/characteristic_interaction_dialog.
 import 'package:led_blue/src/ui/device_detail/device_interaction_tab.dart';
 import 'package:led_blue/src/ui/device_detail/timer/timer_screen.dart';
 import 'package:led_blue/src/ui/device_detail/tone/chat_bubble.dart';
+import 'package:led_blue/src/ui/device_detail/tone/file_part.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -91,6 +92,7 @@ class _TimerScreenState extends State<_TimerScreen> {
 
   String? path;
   List<String> musicFile = [];
+  List<PlatformFile> musicFileInfo = [];
   bool isRecording = false;
   bool isRecordingCompleted = false;
   bool isLoading = true;
@@ -119,9 +121,11 @@ class _TimerScreenState extends State<_TimerScreen> {
   }
 
   void _pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    FilePickerResult? result = await FilePicker.platform
+        .pickFiles(type: FileType.custom, allowedExtensions: ['mp3', 'mp4']);
     if (result != null) {
       musicFile.add(result.files.single.path.toString());
+      musicFileInfo.add(result.files.single);
       setState(() {});
     } else {
       debugPrint("File not picked");
@@ -175,34 +179,22 @@ class _TimerScreenState extends State<_TimerScreen> {
                   ),
                 ],
               ),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
+              SafeArea(
+                child: Column(
                   children: [
-                    isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(),
-                          )
-                        : SafeArea(
-                            child: Column(
-                              children: [
-                                const SizedBox(height: 20),
-                                if (isRecordingCompleted)
-                                  WaveBubble(
-                                    path: path,
-                                    isSender: true,
-                                    appDirectory: appDirectory,
-                                  ),
-                                if (musicFile.isNotEmpty)
-                                  for (var i = 0; i < musicFile.length; i++)
-                                    WaveBubble(
-                                      path: musicFile[i],
-                                      isSender: false,
-                                      appDirectory: appDirectory,
-                                    ),
-                              ],
-                            ),
-                          ),
+                    const SizedBox(height: 20),
+                    if (musicFile.isNotEmpty)
+                      for (var i = 0; i < musicFile.length; i++)
+                        FilePartTone(
+                          file: musicFileInfo[i],
+                          selected: false,
+                        ),
+                    // WaveBubble(
+                    //   path: musicFile[i],
+                    //   musicFileInfo: musicFileInfo[i],
+                    //   isSender: false,
+                    //   appDirectory: appDirectory,
+                    // ),
                   ],
                 ),
               ),
@@ -211,33 +203,5 @@ class _TimerScreenState extends State<_TimerScreen> {
         ),
       ],
     );
-  }
-
-  void _startOrStopRecording() async {
-    try {
-      if (isRecording) {
-        recorderController.reset();
-
-        final path = await recorderController.stop(false);
-
-        if (path != null) {
-          isRecordingCompleted = true;
-          debugPrint(path);
-          debugPrint("Recorded file size: ${File(path).lengthSync()}");
-        }
-      } else {
-        await recorderController.record(path: path!);
-      }
-    } catch (e) {
-      debugPrint(e.toString());
-    } finally {
-      setState(() {
-        isRecording = !isRecording;
-      });
-    }
-  }
-
-  void _refreshWave() {
-    if (isRecording) recorderController.refresh();
   }
 }

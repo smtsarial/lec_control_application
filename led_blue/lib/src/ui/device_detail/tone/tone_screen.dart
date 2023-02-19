@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'dart:io';
 
 import 'package:audio_waveforms/audio_waveforms.dart';
@@ -15,7 +16,6 @@ import 'package:led_blue/src/ui/device_detail/characteristic_interaction_dialog.
 import 'package:led_blue/src/ui/device_detail/device_interaction_tab.dart';
 import 'package:led_blue/src/ui/device_detail/timer/timer_screen.dart';
 import 'package:led_blue/src/ui/device_detail/tone/chat_bubble.dart';
-import 'package:led_blue/src/ui/device_detail/tone/file_part.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -92,7 +92,8 @@ class _TimerScreenState extends State<_TimerScreen> {
 
   String? path;
   List<String> musicFile = [];
-  List<PlatformFile> musicFileInfo = [];
+  List<Map> musicFileInfo = [];
+  Map selectedMusicFileInfo = {};
   bool isRecording = false;
   bool isRecordingCompleted = false;
   bool isLoading = true;
@@ -103,6 +104,106 @@ class _TimerScreenState extends State<_TimerScreen> {
     super.initState();
     _getDir();
     _initialiseControllers();
+  }
+
+  @override
+  void dispose() {
+    recorderController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        SliverList(
+          delegate: SliverChildListDelegate.fixed(
+            [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SizedBox(width: 20),
+                  Text(
+                    "Tone",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _pickFile,
+                    icon: Icon(
+                      Icons.adaptive.share,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              SafeArea(
+                child: Column(
+                  children: [
+                    Text(selectedMusicFileInfo['file'].toString()),
+                    selectedMusicFileInfo != {} &&
+                            selectedMusicFileInfo['file'] != null
+                        ? new WaveBubble(
+                            path:
+                                selectedMusicFileInfo['file'].path.toString(),
+                            musicFileInfo: selectedMusicFileInfo['file'],
+                            isSender: false,
+                            appDirectory: appDirectory,
+                          )
+                        : Container(),
+                    const SizedBox(height: 20),
+                    if (musicFile.isNotEmpty)
+                      for (var i = 0; i < musicFile.length; i++)
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              //set all musicFileInfo selected to false
+                              musicFileInfo.forEach((element) {
+                                element['selected'] = false;
+                              });
+                              musicFileInfo[i]['selected'] = true;
+
+                              selectedMusicFileInfo = {};
+
+                              selectedMusicFileInfo =
+                                  musicFileInfo[i];
+                              //update all widget with new selected musicFileInfo
+                            });
+                            print('degistii' +
+                                selectedMusicFileInfo['file'].toString());
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                  bottom: BorderSide(
+                                      width: 2, color: Colors.white)),
+                              color: musicFileInfo[i]['selected']
+                                  ? const Color(0xFF343145)
+                                  : Colors.transparent,
+                            ),
+                            child: ListTile(
+                                title: Text(musicFileInfo[i]['file']
+                                        .name
+                                        .substring(0, 20) +
+                                    '...'),
+                                subtitle: Text(musicFileInfo[i]['file'].name),
+                                trailing: Text(
+                                    musicFileInfo[i]['file'].size.toString())),
+                          ),
+                        )
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   void _getDir() async {
@@ -125,83 +226,10 @@ class _TimerScreenState extends State<_TimerScreen> {
         .pickFiles(type: FileType.custom, allowedExtensions: ['mp3', 'mp4']);
     if (result != null) {
       musicFile.add(result.files.single.path.toString());
-      musicFileInfo.add(result.files.single);
+      musicFileInfo.add({'file': result.files.single, 'selected': false});
       setState(() {});
     } else {
       debugPrint("File not picked");
     }
-  }
-
-  @override
-  void dispose() {
-    recorderController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverList(
-          delegate: SliverChildListDelegate.fixed(
-            [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // IconButton(
-                  //   onPressed: _pickFile,
-                  //   icon: Icon(
-                  //     Icons.adaptive.share,
-                  //     color: Colors.white,
-                  //   ),
-                  // ),
-                  Container(),
-                  Text(
-                    "Tone",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  // IconButton(
-                  //   onPressed: _startOrStopRecording,
-                  //   icon: Icon(isRecording ? Icons.stop : Icons.mic),
-                  //   color: Colors.white,
-                  //   iconSize: 28,
-                  // ),
-                  IconButton(
-                    onPressed: _pickFile,
-                    icon: Icon(
-                      Icons.adaptive.share,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              SafeArea(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    if (musicFile.isNotEmpty)
-                      for (var i = 0; i < musicFile.length; i++)
-                        FilePartTone(
-                          file: musicFileInfo[i],
-                          selected: false,
-                        ),
-                    // WaveBubble(
-                    //   path: musicFile[i],
-                    //   musicFileInfo: musicFileInfo[i],
-                    //   isSender: false,
-                    //   appDirectory: appDirectory,
-                    // ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 }

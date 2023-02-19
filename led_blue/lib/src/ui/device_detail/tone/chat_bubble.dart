@@ -35,20 +35,22 @@ class _WaveBubbleState extends State<WaveBubble> {
   late StreamSubscription<PlayerState> playerStateSubscription;
 
   final playerWaveStyle = const PlayerWaveStyle(
-    fixedWaveColor: Colors.blueAccent,
-    liveWaveColor: Colors.blueAccent,
-    spacing: 6,
-  );
+      fixedWaveColor: Colors.blueAccent,
+      liveWaveColor: Colors.blueAccent,
+      spacing: 12,
+      seekLineThickness: 4);
 
   @override
   void initState() {
     super.initState();
+    print('object' + widget.path.toString());
     controller = PlayerController();
     _preparePlayer();
     playerStateSubscription = controller.onPlayerStateChanged.listen((_) {
       setState(() {});
 
       print('data' + _.toString());
+      print(widget.musicFileInfo!.name.toString());
     });
     controller.onExtractionProgress.listen((progress) {
       print(progress);
@@ -111,34 +113,13 @@ class _WaveBubbleState extends State<WaveBubble> {
             margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              color: widget.isSender
-                  ? const Color(0xFF276bfd)
-                  : const Color(0xFF343145),
+              color: Colors.transparent,
             ),
             child: Column(
               children: [
-                Text(widget.musicFileInfo!.name.toString()),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (!controller.playerState.isStopped)
-                      IconButton(
-                        onPressed: () async {
-                          controller.playerState.isPlaying
-                              ? await controller.pausePlayer()
-                              : await controller.startPlayer(
-                                  finishMode: FinishMode.loop,
-                                );
-                        },
-                        icon: Icon(
-                          controller.playerState.isPlaying
-                              ? Icons.stop
-                              : Icons.play_arrow,
-                        ),
-                        color: Colors.white,
-                        splashColor: Colors.transparent,
-                        highlightColor: Colors.transparent,
-                      ),
                     AudioFileWaveforms(
                       size: Size(MediaQuery.of(context).size.width - 85, 90),
                       playerController: controller,
@@ -150,6 +131,24 @@ class _WaveBubbleState extends State<WaveBubble> {
                     if (widget.isSender) const SizedBox(width: 10),
                   ],
                 ),
+                if (!controller.playerState.isStopped)
+                  IconButton(
+                    onPressed: () async {
+                      controller.playerState.isPlaying
+                          ? await controller.pausePlayer()
+                          : await controller.startPlayer(
+                              finishMode: FinishMode.stop,
+                            );
+                    },
+                    icon: Icon(
+                      controller.playerState.isPlaying
+                          ? Icons.stop
+                          : Icons.play_arrow,
+                    ),
+                    color: Colors.white,
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                  ),
               ],
             ),
           )

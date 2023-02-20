@@ -1,4 +1,4 @@
-import 'dart:ffi';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_waveforms/audio_waveforms.dart';
@@ -15,9 +15,11 @@ import 'package:led_blue/src/ble/ble_device_interactor.dart';
 import 'package:led_blue/src/ui/device_detail/characteristic_interaction_dialog.dart';
 import 'package:led_blue/src/ui/device_detail/device_interaction_tab.dart';
 import 'package:led_blue/src/ui/device_detail/timer/timer_screen.dart';
-import 'package:led_blue/src/ui/device_detail/tone/chat_bubble.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+
+//add enum PlayerState
+enum PlayerState { stop, play, pause, loop }
 
 class ToneScreenTab extends StatelessWidget {
   final DiscoveredDevice device;
@@ -88,8 +90,6 @@ class _TimerScreen extends StatefulWidget {
 }
 
 class _TimerScreenState extends State<_TimerScreen> {
-  late final RecorderController recorderController;
-
   String? path;
   List<String> musicFile = [];
   List<Map> musicFileInfo = [];
@@ -97,19 +97,38 @@ class _TimerScreenState extends State<_TimerScreen> {
   bool isRecording = false;
   bool isRecordingCompleted = false;
   bool isLoading = true;
-  late Directory appDirectory;
+  Directory appDirectory = Directory('');
+  File? file;
+  List<double> _waveExtractedData = [];
+  bool _isAudioLoading = false;
+  bool _isAudioPlaying = false;
+  bool _isAudioPaused = false;
+  bool _isAudioStopped = false;
+  bool _isAudioCompleted = false;
+
+  PlayerController controller = PlayerController();
+
+  final playerWaveStyle = const PlayerWaveStyle(
+      fixedWaveColor: Colors.blueAccent,
+      liveWaveColor: Colors.white,
+      spacing: 15,
+      waveThickness: 8);
 
   @override
   void initState() {
     super.initState();
     _getDir();
-    _initialiseControllers();
-  }
-
-  @override
-  void dispose() {
-    recorderController.dispose();
-    super.dispose();
+    controller = PlayerController();
+    controller.onPlayerStateChanged.listen((state) {
+      print('state: $state');
+    });
+    controller.onCurrentDurationChanged.listen((duration) {
+      print('duration: $duration');
+      print('controller====' + controller.waveformData.toString());
+    });
+    controller.onCurrentExtractedWaveformData.listen((data) {
+      print('samet======' + data.length.toString());
+    });
   }
 
   @override
@@ -143,24 +162,27 @@ class _TimerScreenState extends State<_TimerScreen> {
               SafeArea(
                 child: Column(
                   children: [
-                    Text(selectedMusicFileInfo['file'].toString()),
+                    //   Text(selectedMusicFileInfo['file'].toString()),
+                    //   Text('**********'),
+                    //   Text(appDirectory.path.toString()),
+                    //   Text('**********'),
+                    //   Text(selectedMusicFileInfo['file'].toString()),
                     selectedMusicFileInfo != {} &&
                             selectedMusicFileInfo['file'] != null
-                        ? new WaveBubble(
-                            path:
-                                selectedMusicFileInfo['file'].path.toString(),
-                            musicFileInfo: selectedMusicFileInfo['file'],
-                            isSender: false,
-                            appDirectory: appDirectory,
+                        ? audioWave(
+                            selectedMusicFileInfo['file'].path.toString(),
                           )
                         : Container(),
                     const SizedBox(height: 20),
                     if (musicFile.isNotEmpty)
                       for (var i = 0; i < musicFile.length; i++)
                         GestureDetector(
-                          onTap: () {
+                          onTap: () async {
+                            if (controller.playerState.isPlaying ||
+                                controller.playerState.isPaused) {
+                              await controller.stopPlayer();
+                            }
                             setState(() {
-                              //set all musicFileInfo selected to false
                               musicFileInfo.forEach((element) {
                                 element['selected'] = false;
                               });
@@ -168,10 +190,12 @@ class _TimerScreenState extends State<_TimerScreen> {
 
                               selectedMusicFileInfo = {};
 
-                              selectedMusicFileInfo =
-                                  musicFileInfo[i];
+                              selectedMusicFileInfo = musicFileInfo[i];
                               //update all widget with new selected musicFileInfo
                             });
+                            //wait 3 seconds to play music
+                            _preparePlayer(
+                                appDirectory, selectedMusicFileInfo['file']);
                             print('degistii' +
                                 selectedMusicFileInfo['file'].toString());
                           },
@@ -196,6 +220,11 @@ class _TimerScreenState extends State<_TimerScreen> {
                                     musicFileInfo[i]['file'].size.toString())),
                           ),
                         )
+                    else
+                      Center(
+                          child: Text('No file selected. Please select one.',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 20)))
                   ],
                 ),
               ),
@@ -206,19 +235,94 @@ class _TimerScreenState extends State<_TimerScreen> {
     );
   }
 
+  Widget audioWave(String path) {
+    return _isAudioLoading
+        ? CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          )
+        : Container(
+            padding: EdgeInsets.only(
+              bottom: 6,
+              right: 10,
+              top: 6,
+            ),
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: Colors.transparent,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AudioFileWaveforms(
+                      size: Size(MediaQuery.of(context).size.width - 85, 100),
+                      playerController: controller,
+                      enableSeekGesture: true,
+                      waveformType: WaveformType.long,
+                      waveformData: _waveExtractedData,
+                      playerWaveStyle: playerWaveStyle,
+                    ),
+                  ],
+                ),
+                if (!controller.playerState.isStopped)
+                  IconButton(
+                    onPressed: () async {
+                      _isAudioPlaying
+                          ? changeControllerState(PlayerState.pause)
+                          : changeControllerState(PlayerState.play);
+                    },
+                    icon: Icon(
+                      _isAudioPlaying ? Icons.pause : Icons.play_arrow,
+                    ),
+                    color: Colors.white,
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                  ),
+              ],
+            ),
+          );
+  }
+
+  void changeControllerState(PlayerState state) {
+    switch (state) {
+      case PlayerState.stop:
+        _isAudioStopped = true;
+        _isAudioPaused = false;
+        _isAudioPlaying = false;
+        _isAudioCompleted = false;
+        controller.stopPlayer();
+        break;
+      case PlayerState.pause:
+        _isAudioStopped = false;
+        _isAudioPaused = true;
+        _isAudioPlaying = false;
+        _isAudioCompleted = false;
+        controller.pausePlayer();
+        break;
+      case PlayerState.play:
+        _isAudioStopped = false;
+        _isAudioPaused = false;
+        _isAudioPlaying = true;
+        _isAudioCompleted = false;
+        controller.startPlayer();
+        break;
+      default:
+        _isAudioStopped = false;
+        _isAudioPaused = false;
+        _isAudioPlaying = false;
+        _isAudioCompleted = false;
+        break;
+    }
+    setState(() {});
+  }
+
   void _getDir() async {
     appDirectory = await getApplicationDocumentsDirectory();
     path = "${appDirectory.path}/recording.m4a";
     isLoading = false;
     setState(() {});
-  }
-
-  void _initialiseControllers() {
-    recorderController = RecorderController()
-      ..androidEncoder = AndroidEncoder.aac
-      ..androidOutputFormat = AndroidOutputFormat.mpeg4
-      ..iosEncoder = IosEncoder.kAudioFormatMPEG4AAC
-      ..sampleRate = 44100;
   }
 
   void _pickFile() async {
@@ -231,5 +335,47 @@ class _TimerScreenState extends State<_TimerScreen> {
     } else {
       debugPrint("File not picked");
     }
+  }
+
+  void _preparePlayer(Directory appDirectory, PlatformFile file) async {
+    try {
+      setState(() {
+        _isAudioLoading = true;
+      });
+      print(appDirectory.uri);
+      print('dataaaaaaa' + file.path.toString());
+      await controller.preparePlayer(
+        path: file.path.toString(),
+        shouldExtractWaveform: true,
+      );
+      print('object');
+      await controller
+          .extractWaveformData(
+        path: file.path.toString(),
+        noOfSamples: playerWaveStyle.getSamplesForWidth(200),
+      )
+          .then((waveformData) {
+        print('idk' + waveformData.toString());
+        setState(() {
+          _isAudioLoading = false;
+        });
+        setState(() {
+          _waveExtractedData.addAll(waveformData);
+        });
+      });
+    } catch (e) {
+      print(e);
+      setState(() {
+        _isAudioLoading = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    controller.stopAllPlayers();
+    controller.dispose();
+    super.dispose();
+    super.dispose();
   }
 }

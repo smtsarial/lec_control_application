@@ -105,6 +105,7 @@ class _TimerScreenState extends State<_TimerScreen> {
   bool _isAudioPaused = false;
   bool _isAudioStopped = false;
   bool _isAudioCompleted = false;
+  String _currentDuration = '00:00';
 
   PlayerController controller = PlayerController();
 
@@ -123,12 +124,17 @@ class _TimerScreenState extends State<_TimerScreen> {
       print('state: $state');
     });
     controller.onCurrentDurationChanged.listen((duration) {
-      print('duration: $duration');
-      print('controller====' + controller.waveformData.toString());
+      //change duration milliseconds to seconds
+
+      print('duration: ${duration.toMMSS()}');
+      setState(() {
+        _currentDuration = duration.toMMSS();
+      });
     });
     controller.onCurrentExtractedWaveformData.listen((data) {
       print('samet======' + data.length.toString());
     });
+
   }
 
   @override
@@ -162,15 +168,38 @@ class _TimerScreenState extends State<_TimerScreen> {
               SafeArea(
                 child: Column(
                   children: [
-                    //   Text(selectedMusicFileInfo['file'].toString()),
-                    //   Text('**********'),
-                    //   Text(appDirectory.path.toString()),
-                    //   Text('**********'),
-                    //   Text(selectedMusicFileInfo['file'].toString()),
+                    // Text(selectedMusicFileInfo['file'].toString()),
+                    // Text('**********'),
+                    // Text(appDirectory.path.toString()),
+                    // Text('**********'),
+                    // Text(selectedMusicFileInfo['file'].toString()),
+
                     selectedMusicFileInfo != {} &&
                             selectedMusicFileInfo['file'] != null
-                        ? audioWave(
-                            selectedMusicFileInfo['file'].path.toString(),
+                        ? Column(
+                            children: [
+                              Text(
+                                '',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(15.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(_currentDuration),
+                                    Text(controller.maxDuration.toString()),
+                                  ],
+                                ),
+                              ),
+                              audioWave(
+                                selectedMusicFileInfo['file'].path.toString(),
+                              )
+                            ],
                           )
                         : Container(),
                     const SizedBox(height: 20),
@@ -355,10 +384,11 @@ class _TimerScreenState extends State<_TimerScreen> {
         noOfSamples: playerWaveStyle.getSamplesForWidth(200),
       )
           .then((waveformData) {
-        print('idk' + waveformData.toString());
+        print('idk**//**/**//**//*/*/*/*' + waveformData.toString());
         setState(() {
           _isAudioLoading = false;
         });
+
         setState(() {
           _waveExtractedData.addAll(waveformData);
         });

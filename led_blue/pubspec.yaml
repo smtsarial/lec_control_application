@@ -42,6 +42,7 @@ dependencies:
   file_picker: ^5.2.5
   path_provider: ^2.0.12
   mic_stream: ^0.6.4
+  noise_meter: ^3.1.0
   audio_waveforms: ^1.0.1
 
   # The following adds the Cupertino Icons font to your application.

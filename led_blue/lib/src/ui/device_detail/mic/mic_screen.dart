@@ -245,7 +245,6 @@ class _TimerScreenState extends State<_TimerScreen>
       points.add(point);
     }
 
-    // print('points: $points');
     return points;
   }
 

@@ -475,15 +475,15 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                 scrollDirection: Axis.horizontal,
                 child: Row(children: [
                   //listview builder for colors in favColors list
-                  for (var i = 0; i < favColors.length; i++)
+                  for (var i = 0; i < basicColors.length; i++)
                     GestureDetector(
                       onTap: () {
                         setState(() {
-                          favColors[i]['selected'] = true;
-                          changeColor(favColors[i]['color']);
+                          basicColors[i]['selected'] = true;
+                          changeColor(basicColors[i]['color']);
                           for (var j = 0; j < favColors.length; j++) {
                             if (j != i) {
-                              favColors[j]['selected'] = false;
+                              basicColors[j]['selected'] = false;
                             }
                           }
                         });
@@ -492,10 +492,10 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                         margin: EdgeInsets.symmetric(horizontal: 5),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(50),
-                          color: favColors[i]['color'],
+                          color: basicColors[i]['color'],
                         ),
-                        width: favColors[i]['selected'] ? 55 : 45,
-                        height: favColors[i]['selected'] ? 50 : 40,
+                        width: basicColors[i]['selected'] ? 55 : 45,
+                        height: basicColors[i]['selected'] ? 50 : 40,
                       ),
                     )
                 ]),
@@ -506,6 +506,41 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
       ],
     );
   }
+
+  List<Map<String, dynamic>> basicColors = [
+    {
+      'color': Color(0xffEB5757),
+      'selected': false,
+    },
+    {
+      'color': Color(0xffF2994A),
+      'selected': false,
+    },
+    {
+      'color': Color(0xffF2C94C),
+      'selected': false,
+    },
+    {
+      'color': Color(0xff219653),
+      'selected': true,
+    },
+    {
+      'color': Color(0xff6FCF97),
+      'selected': false,
+    },
+    {
+      'color': Color(0xffBB6BD9),
+      'selected': false,
+    },
+    {
+      'color': Color(0xff6FCF97),
+      'selected': false,
+    },
+    {
+      'color': Color(0xffed1c24),
+      'selected': false,
+    },
+  ];
 }
 
 class _ServiceDiscoveryList extends StatefulWidget {

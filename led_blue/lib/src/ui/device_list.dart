@@ -130,8 +130,8 @@ class _DeviceListState extends State<_DeviceList> {
                                 await Navigator.push<void>(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (_) => DeviceDetailScreen(
-                                            device: device)));
+                                        builder: (_) =>
+                                            DeviceDetailTab(device: device)));
                               },
                             ),
                           ),

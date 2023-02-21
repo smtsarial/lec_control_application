@@ -261,12 +261,9 @@ class _TimerScreenState extends State<_TimerScreen>
     return true;
   }
 
-  // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
     if (!mounted) return;
     isActive = true;
-
-    // Statistics(false);
 
     controller =
         AnimationController(duration: Duration(seconds: 1), vsync: this)
@@ -294,10 +291,6 @@ class _TimerScreenState extends State<_TimerScreen>
       discoveredServices = result;
     });
     return result;
-  }
-
-  Future<void> runDeviceCode() async {
-    //find first selected modiList item
   }
 
   @override

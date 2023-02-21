@@ -1,19 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:functional_data/functional_data.dart';
 import 'package:led_blue/src/ble/ble_device_connector.dart';
 import 'package:led_blue/src/ble/ble_device_interactor.dart';
-import 'package:led_blue/src/ui/device_detail/characteristic_interaction_dialog.dart';
-import 'package:led_blue/src/ui/device_detail/device_interaction_tab.dart';
 import 'package:led_blue/src/ui/device_detail/timer/timer_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -134,7 +127,6 @@ class _TimerScreenState extends State<_TimerScreen> {
     controller.onCurrentExtractedWaveformData.listen((data) {
       print('samet======' + data.length.toString());
     });
-
   }
 
   @override

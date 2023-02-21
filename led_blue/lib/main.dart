@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:led_blue/src/ble/ble_device_connector.dart';
@@ -81,7 +83,7 @@ void main() {
           child: const DefaultTextStyle(
             style: const TextStyle(
                 fontFamily: 'Roboto', fontWeight: FontWeight.w900),
-            child: const HomeScreen(),
+            child: const LaunchScreen(),
           ),
         ),
         debugShowCheckedModeBanner: false,
@@ -90,21 +92,26 @@ void main() {
   );
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({
     Key? key,
   }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) => Consumer<BleStatus?>(
-        builder: (_, status, __) {
-          if (status == BleStatus.ready) {
-            // return const LaunchScreen();
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
-            return const DeviceListScreen();
-          } else {
-            return BleStatusScreen(status: status ?? BleStatus.unknown);
-          }
-        },
-      );
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<BleStatus?>(
+      builder: (_, status, __) {
+        if (status == BleStatus.ready) {
+          return const DeviceListScreen();
+        } else {
+          return BleStatusScreen(status: status ?? BleStatus.unknown);
+        }
+      },
+    );
+  }
 }

@@ -360,7 +360,7 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                   topRight: const Radius.circular(2.0),
                 ),
                 hexInputBar: false,
-                portraitOnly: true,
+                portraitOnly: false,
                 colorHistory: [],
                 showLabel: false,
               ),
@@ -368,33 +368,6 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 15),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            isOn ? "An" : "Aus",
-                            style: TextStyle(
-                                fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                          CupertinoSwitch(
-                            value: isOn,
-                            onChanged: (value) {
-                              setState(() {
-                                isOn = value;
-                                if (isOn) {
-                                  ledOn();
-                                } else {
-                                  ledOff();
-                                }
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
                     const Divider(
                       height: 2,
                       thickness: 0.5,

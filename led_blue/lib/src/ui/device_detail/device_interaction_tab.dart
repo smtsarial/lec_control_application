@@ -9,7 +9,9 @@ import 'package:functional_data/functional_data.dart';
 import 'package:led_blue/src/ble/ble_device_connector.dart';
 import 'package:led_blue/src/ble/ble_device_interactor.dart';
 import 'package:led_blue/src/helpers/HexColor.dart';
+import 'package:led_blue/src/helpers/widget/SizeConfig.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'characteristic_interaction_dialog.dart';
 
@@ -87,6 +89,7 @@ class _DeviceInteractionTab extends StatefulWidget {
 
 class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
   List<DiscoveredService> discoveredServices = [];
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   bool isOn = false;
   double _brightness = 0.0;
 
@@ -97,8 +100,18 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
     } catch (e) {
       print(e);
     }
-
+    getSharedPref();
     super.initState();
+  }
+
+  getSharedPref() async {
+    print('getSharedPref');
+    await _prefs.then((value) {
+      var _favColors = value.getStringList('favColors');
+
+      print('_favColors');
+      print(_favColors);
+    });
   }
 
   initilize() async {
@@ -339,183 +352,183 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverList(
-          delegate: SliverChildListDelegate.fixed(
-            [
+    SizeConfig().init(context);
+    return Column(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsetsDirectional.only(top: 8.0, bottom: 16.0),
+          child: Text(
+            "Farbe",
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        ClipRect(
+            child: Align(
+          alignment: Alignment.topCenter,
+          heightFactor: 0.70,
+          child: ColorPicker(
+            pickerColor: pickerColor,
+            onColorChanged: changeFavColors,
+            colorPickerWidth: SizeConfig.blockSizeHorizontal * 50,
+            enableAlpha: false,
+            labelTypes: [],
+            displayThumbColor: false,
+            paletteType: PaletteType.hueWheel,
+            pickerAreaBorderRadius: const BorderRadius.only(
+              topLeft: const Radius.circular(2.0),
+              topRight: const Radius.circular(2.0),
+            ),
+            hexInputBar: false,
+            portraitOnly: true,
+            colorHistory: [],
+            showLabel: true,
+          ),
+        )),
+        Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              const Divider(
+                height: 2,
+                thickness: 0.5,
+                indent: 10,
+                endIndent: 10,
+                color: Colors.white,
+              ),
               Padding(
                 padding:
-                    const EdgeInsetsDirectional.only(top: 8.0, bottom: 16.0),
-                child: Text(
-                  "Farbe",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              ClipRect(
-                  child: Align(
-                alignment: Alignment.topCenter,
-                heightFactor: 0.75,
-                child: ColorPicker(
-                  pickerColor: pickerColor,
-                  onColorChanged: changeFavColors,
-                  colorPickerWidth: 250,
-                  enableAlpha: false,
-                  labelTypes: [],
-                  displayThumbColor: false,
-                  paletteType: PaletteType.hueWheel,
-                  pickerAreaBorderRadius: const BorderRadius.only(
-                    topLeft: const Radius.circular(2.0),
-                    topRight: const Radius.circular(2.0),
-                  ),
-                  hexInputBar: false,
-                  portraitOnly: true,
-                  colorHistory: [],
-                  showLabel: true,
-                ),
-              )),
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Divider(
-                      height: 2,
-                      thickness: 0.5,
-                      indent: 10,
-                      endIndent: 10,
-                      color: Colors.white,
+                    Text(
+                      'Helligkeit',
+                      style:
+                          TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 2),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Helligkeit',
-                            style: TextStyle(
-                                fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                '%' + _brightness.toInt().toString(),
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white30),
-                              ),
-                              Slider(
-                                min: 0,
-                                max: 100,
-                                inactiveColor: Colors.white,
-                                value: _brightness,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _brightness = value;
-                                  });
-                                  changeBrightness();
-                                },
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
-                    const Divider(
-                      height: 2,
-                      thickness: 0.5,
-                      indent: 10,
-                      endIndent: 10,
-                      color: Colors.white,
-                    ),
+                    Row(
+                      children: [
+                        Text(
+                          '%' + _brightness.toInt().toString(),
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white30),
+                        ),
+                        Slider(
+                          min: 0,
+                          max: 100,
+                          inactiveColor: Colors.white,
+                          value: _brightness,
+                          onChanged: (value) {
+                            setState(() {
+                              _brightness = value;
+                            });
+                            changeBrightness();
+                          },
+                        ),
+                      ],
+                    )
                   ],
                 ),
               ),
-              SizedBox(height: 30),
-              Text(
-                'Favs',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(children: [
-                  //listview builder for colors in favColors list
-                  for (var i = 0; i < favColors.length; i++)
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          favColors[i]['selected'] = true;
-                          pickerColor = favColors[i]['color'];
-                          changeColor(favColors[i]['color']);
-                          for (var j = 0; j < favColors.length; j++) {
-                            if (j != i) {
-                              favColors[j]['selected'] = false;
-                            }
-                          }
-                        });
-                      },
-                      child: Container(
-                        margin: EdgeInsets.symmetric(horizontal: 5),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(50),
-                          color: favColors[i]['color'],
-                        ),
-                        width: 45,
-                        height: favColors[i]['selected'] ? 100 : 75,
-                      ),
-                    )
-                ]),
-              ),
-              SizedBox(height: 30),
-              Text(
-                'Basic Colors',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(children: [
-                  //listview builder for colors in favColors list
-                  for (var i = 0; i < basicColors.length; i++)
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          basicColors[i]['selected'] = true;
-                          changeColor(basicColors[i]['color']);
-                          for (var j = 0; j < favColors.length; j++) {
-                            if (j != i) {
-                              basicColors[j]['selected'] = false;
-                            }
-                          }
-                        });
-                      },
-                      child: Container(
-                        margin: EdgeInsets.symmetric(horizontal: 5),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(50),
-                          color: basicColors[i]['color'],
-                        ),
-                        width: basicColors[i]['selected'] ? 55 : 45,
-                        height: basicColors[i]['selected'] ? 50 : 40,
-                      ),
-                    )
-                ]),
+              const Divider(
+                height: 2,
+                thickness: 0.5,
+                indent: 10,
+                endIndent: 10,
+                color: Colors.white,
               ),
             ],
+          ),
+        ),
+        SizedBox(height: 30),
+        Text(
+          'Favs',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 10),
+        Container(
+          height: SizeConfig.screenHeight * 0.1,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              //listview builder for colors in favColors list
+              for (var i = 0; i < favColors.length; i++)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      favColors[i]['selected'] = true;
+                      pickerColor = favColors[i]['color'];
+                      changeColor(favColors[i]['color']);
+                      for (var j = 0; j < favColors.length; j++) {
+                        if (j != i) {
+                          favColors[j]['selected'] = false;
+                        }
+                      }
+                    });
+                  },
+                  child: Container(
+                    margin: EdgeInsets.symmetric(horizontal: 5),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(50),
+                      color: favColors[i]['color'],
+                    ),
+                    width: 45,
+                    height: favColors[i]['selected'] ? 100 : 75,
+                  ),
+                )
+            ]),
+          ),
+        ),
+        SizedBox(height: 30),
+        Text(
+          'Basic Colors',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 10),
+        Container(
+          height: SizeConfig.screenHeight * 0.1,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              //listview builder for colors in favColors list
+              for (var i = 0; i < basicColors.length; i++)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      basicColors[i]['selected'] = true;
+                      changeColor(basicColors[i]['color']);
+                      for (var j = 0; j < favColors.length; j++) {
+                        if (j != i) {
+                          basicColors[j]['selected'] = false;
+                        }
+                      }
+                    });
+                  },
+                  child: Container(
+                    margin: EdgeInsets.symmetric(horizontal: 5),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(50),
+                      color: basicColors[i]['color'],
+                    ),
+                    width: basicColors[i]['selected'] ? 55 : 45,
+                    height: basicColors[i]['selected'] ? 50 : 40,
+                  ),
+                )
+            ]),
           ),
         ),
       ],

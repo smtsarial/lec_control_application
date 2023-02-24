@@ -188,7 +188,6 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
   }
 
   Color pickerColor = Color(0xff219653);
-  Color currentColor = Color(0xff219653);
 
   //add type
   List<Map<String, dynamic>> favColors = [
@@ -225,6 +224,16 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
       'selected': false,
     },
   ];
+  void changeFavColors(Color color) {
+    setState(() {
+      pickerColor = color;
+      favColors.forEach((element) {
+        if (element['selected']) {
+          element['color'] = color;
+        }
+      });
+    });
+  }
 
 // ValueChanged<Color> callback
   void changeColor(Color color) async {
@@ -347,23 +356,28 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                   ),
                 ),
               ),
-              ColorPicker(
-                pickerColor: pickerColor,
-                onColorChanged: changeColor,
-                colorPickerWidth: 250,
-                enableAlpha: false,
-                labelTypes: [],
-                displayThumbColor: false,
-                paletteType: PaletteType.hueWheel,
-                pickerAreaBorderRadius: const BorderRadius.only(
-                  topLeft: const Radius.circular(2.0),
-                  topRight: const Radius.circular(2.0),
+              ClipRect(
+                  child: Align(
+                alignment: Alignment.topCenter,
+                heightFactor: 0.75,
+                child: ColorPicker(
+                  pickerColor: pickerColor,
+                  onColorChanged: changeFavColors,
+                  colorPickerWidth: 250,
+                  enableAlpha: false,
+                  labelTypes: [],
+                  displayThumbColor: false,
+                  paletteType: PaletteType.hueWheel,
+                  pickerAreaBorderRadius: const BorderRadius.only(
+                    topLeft: const Radius.circular(2.0),
+                    topRight: const Radius.circular(2.0),
+                  ),
+                  hexInputBar: false,
+                  portraitOnly: true,
+                  colorHistory: [],
+                  showLabel: true,
                 ),
-                hexInputBar: false,
-                portraitOnly: false,
-                colorHistory: [],
-                showLabel: false,
-              ),
+              )),
               Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
@@ -441,6 +455,7 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                       onTap: () {
                         setState(() {
                           favColors[i]['selected'] = true;
+                          pickerColor = favColors[i]['color'];
                           changeColor(favColors[i]['color']);
                           for (var j = 0; j < favColors.length; j++) {
                             if (j != i) {

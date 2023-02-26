@@ -46,6 +46,7 @@ dependencies:
   just_audio: ^0.9.31
   audio_waveforms: ^1.0.1
   shared_preferences: ^2.0.18
+  dotted_border: ^2.0.0+3
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -74,6 +75,7 @@ flutter:
     - assets/images/logo.png
     - assets/images/record.png
     - assets/images/main.png
+    - assets/images/add_image_icon.png
 
   fonts:
     - family: Roboto

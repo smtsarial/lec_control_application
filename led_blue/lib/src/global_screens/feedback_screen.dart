@@ -1,3 +1,4 @@
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/container.dart';
 import 'package:flutter/src/widgets/framework.dart';
@@ -82,32 +83,33 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 height: 30,
                 width: 10,
               ),
-              Container(
-                  padding: EdgeInsets.only(top: 20),
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Colors.white,
-                      style: BorderStyle.solid,
-                      width: 2,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.attach_file,
-                        color: Colors.white,
-                        size: 50,
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        child: Text("Bild hochladen"),
-                      ),
-                    ],
-                  )),
+              InkWell(
+                onTap: () {},
+                child: DottedBorder(
+                  borderType: BorderType.RRect,
+                  radius: Radius.circular(5),
+                  dashPattern: [10, 10],
+                  color: Colors.white,
+                  strokeWidth: 3,
+                  child: Container(
+                      padding: EdgeInsets.only(top: 20),
+                      width: double.infinity,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            "assets/images/add_image_icon.png",
+                            width: 50,
+                            height: 50,
+                          ),
+                          SizedBox(height: 10),
+                          Text("Bild hochladen"),
+                          SizedBox(height: 20),
+                        ],
+                      )),
+                ),
+              ),
               Container(
                 width: 570,
                 height: 70,

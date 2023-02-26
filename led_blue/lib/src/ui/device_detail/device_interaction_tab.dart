@@ -246,26 +246,31 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
         }
       });
     });
+    changeColor(color);
   }
 
 // ValueChanged<Color> callback
   void changeColor(Color color) async {
     print(widget.viewModel.connectionStatus);
     setState(() => pickerColor = color);
+
+    var selectedColorHSV =
+        HSVColor.fromColor(pickerColor).withValue(1.0).toColor();
     if (widget.viewModel.connectionStatus == DeviceConnectionState.connected ||
         widget.viewModel.connectionStatus == DeviceConnectionState.connecting) {
       print('COLOR CHANGE');
 
       Snackbar(context, 'Success');
+
       await widget.viewModel.service
           .writeDataToFF3Services(widget.viewModel.deviceId, [
         126,
         7,
         5,
         3,
-        pickerColor.red,
-        pickerColor.green,
-        pickerColor.blue,
+        selectedColorHSV.red,
+        selectedColorHSV.green,
+        selectedColorHSV.blue,
         0,
         239,
         51,
@@ -287,9 +292,9 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
         7,
         5,
         3,
-        pickerColor.red,
-        pickerColor.green,
-        pickerColor.blue,
+        selectedColorHSV.red,
+        selectedColorHSV.green,
+        selectedColorHSV.blue,
         0,
         239,
         51,
@@ -371,7 +376,8 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
           alignment: Alignment.topCenter,
           heightFactor: 0.70,
           child: ColorPicker(
-            pickerColor: pickerColor,
+            pickerColor:
+                HSVColor.fromColor(pickerColor).withValue(1.0).toColor(),
             onColorChanged: changeFavColors,
             colorPickerWidth: SizeConfig.blockSizeHorizontal * 50,
             enableAlpha: false,

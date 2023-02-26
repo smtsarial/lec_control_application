@@ -32,7 +32,8 @@ class _LaunchScreenState extends State<LaunchScreen> {
         width: double.infinity,
         decoration: const BoxDecoration(
           image: DecorationImage(
-              image: AssetImage("assets/images/main.png"), fit: BoxFit.cover),
+              image: AssetImage("assets/images/landing.png"),
+              fit: BoxFit.cover),
         ),
         child: Center());
   }

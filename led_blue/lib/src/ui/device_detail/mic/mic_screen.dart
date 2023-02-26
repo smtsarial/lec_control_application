@@ -16,6 +16,9 @@ import 'package:led_blue/src/ui/device_detail/timer/timer_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mic_stream/mic_stream.dart';
 import 'package:collection/collection.dart';
+import 'package:noise_meter/noise_meter.dart';
+import 'package:flutter/material.dart';
+import 'dart:async';
 
 enum Command {
   start,
@@ -99,183 +102,68 @@ class _TimerScreenState extends State<_TimerScreen>
   List<DiscoveredService> discoveredServices = [];
   Stream? stream;
   late StreamSubscription listener;
-  List<int>? currentSamples = [];
-  List<int> visibleSamples = [];
-  int? localMax;
-  int? localMin;
-
-  Random rng = new Random();
-  late AnimationController controller;
-  bool isRecording = false;
-  bool memRecordingState = false;
-  late bool isActive;
-  DateTime? startTime;
+  bool _isRecording = false;
+  StreamSubscription<NoiseReading>? _noiseSubscription;
+  late NoiseMeter _noiseMeter;
+  int localmax = 0;
+  int localmin = 0;
 
   @override
   void initState() {
-    try {
-      initilize();
-    } catch (e) {
-      print(e);
-    }
     super.initState();
-    WidgetsBinding.instance!.addObserver(this);
-    setState(() {
-      initPlatformState();
+    _noiseMeter = new NoiseMeter(onError);
+  }
+
+  @override
+  void dispose() {
+    _noiseSubscription?.cancel();
+    super.dispose();
+  }
+
+  void onData(NoiseReading noiseReading) {
+    this.setState(() {
+      if (!this._isRecording) {
+        this._isRecording = true;
+      }
     });
-  }
 
-  // Responsible for switching between recording / idle state
-  void _controlMicStream({Command command: Command.change}) async {
-    switch (command) {
-      case Command.change:
-        _changeListening();
-        break;
-      case Command.start:
-        _startListening();
-        break;
-      case Command.stop:
-        _stopListening();
-        break;
-    }
-  }
+    int meandecibel = noiseReading.meanDecibel.toInt();
 
-  Future<bool> _changeListening() async =>
-      !isRecording ? await _startListening() : _stopListening();
-
-  late int bytesPerSample;
-  late int samplesPerSecond;
-
-  Future<bool> _startListening() async {
-    print("START LISTENING");
-    if (isRecording) return false;
-    // if this is the first time invoking the microphone()
-    // method to get the stream, we don't yet have access
-    // to the sampleRate and bitDepth properties
-    print("wait for stream");
-
-    // Default option. Set to false to disable request permission dialogue
-    MicStream.shouldRequestPermission(true);
-
-    stream = await MicStream.microphone(
-        audioSource: AudioSource.DEFAULT,
-        sampleRate: 1000 * (rng.nextInt(50) + 30),
-        channelConfig: ChannelConfig.CHANNEL_IN_MONO,
-        audioFormat: AUDIO_FORMAT);
-    // after invoking the method for the first time, though, these will be available;
-    // It is not necessary to setup a listener first, the stream only needs to be returned first
-    print(
-        "Start Listening to the microphone, sample rate is ${await MicStream.sampleRate}, bit depth is ${await MicStream.bitDepth}, bufferSize: ${await MicStream.bufferSize}");
-    bytesPerSample = (await MicStream.bitDepth)! ~/ 8;
-    samplesPerSecond = (await MicStream.sampleRate)!.toInt();
-    localMax = null;
-    localMin = null;
-
-    setState(() {
-      isRecording = true;
-      startTime = DateTime.now();
-    });
-    visibleSamples = [];
-    listener = stream!.listen(_calculateSamples);
-    return true;
-  }
-
-  void _calculateSamples(samples) {
-    _calculateWaveSamples(samples);
-    var points = toPoints(visibleSamples);
-    // print('samet' + points[440].direction.toString());
-    Path path = new Path();
-    path.addPolygon(points, false);
-    var brightness = path.getBounds().center.dy.toInt();
-    if (brightness < 30) {
-      brightness = 0;
-    } else if (brightness < 200 && brightness > 150) {
-      brightness = 64;
-    } else if (brightness < 150 && brightness > 120) {
-      brightness = 50;
-    } else if (brightness < 120 && brightness > 100) {
-      brightness = 40;
-    } else if (brightness < 100 && brightness > 80) {
-      brightness = 30;
-    } else if (brightness < 80 && brightness > 60) {
-      brightness = 20;
-    } else if (brightness < 60 && brightness > 30) {
-      brightness = 10;
-    }
-    print(brightness);
+    if (meandecibel > localmax) localmax = meandecibel;
+    if (meandecibel < localmin) localmin = meandecibel;
+    print('LocalMin: ' +
+        localmin.toString() +
+        ' LocalMax: ' +
+        localmax.toString());
+    int brightness = ((64 * meandecibel) ~/ localmax).toInt();
     changeBrightness(brightness);
   }
 
-  void _calculateWaveSamples(samples) {
-    bool first = true;
-    visibleSamples = [];
-    int tmp = 0;
-    for (int sample in samples) {
-      if (sample > 128) sample -= 255;
-      if (first) {
-        tmp = sample * 128;
-      } else {
-        tmp += sample;
-        visibleSamples.add(tmp);
+  void onError(Object error) {
+    print(error.toString());
+    _isRecording = false;
+  }
 
-        localMax ??= visibleSamples.last;
-        localMin ??= visibleSamples.last;
+  void start() async {
+    try {
+      _noiseSubscription = _noiseMeter.noiseStream.listen(onData);
+    } catch (err) {
+      print(err);
+    }
+  }
 
-        localMax = max(localMax!, visibleSamples.last);
-        localMin = min(localMin!, visibleSamples.last);
-        tmp = 0;
+  void stop() async {
+    try {
+      if (_noiseSubscription != null) {
+        _noiseSubscription!.cancel();
+        _noiseSubscription = null;
       }
-      first = !first;
+      this.setState(() {
+        this._isRecording = false;
+      });
+    } catch (err) {
+      print('stopRecorder error: $err');
     }
-  }
-
-  List<Offset> toPoints(List<int>? samples) {
-    var sum = samples!.reduce((value, current) => value + current);
-    var avg = sum / samples.length;
-    // print('avg: $avg');
-    List<Offset> points = [];
-    if (samples == null)
-      samples = List<int>.filled(context.size!.width.toInt(), (0.5).toInt());
-    double pixelsPerSample = context.size!.width / samples.length;
-    for (int i = 0; i < samples.length; i++) {
-      var dy = 0.5 *
-          context.size!.height *
-          pow((samples[i] - localMin!) / (localMax! - localMin!), 5);
-      var point = Offset(i * pixelsPerSample, dy);
-      points.add(point);
-    }
-
-    return points;
-  }
-
-  bool _stopListening() {
-    if (!isRecording) return false;
-    print("Stop Listening to the microphone");
-    listener.cancel();
-
-    setState(() {
-      isRecording = false;
-      currentSamples = null;
-      startTime = null;
-    });
-    return true;
-  }
-
-  Future<void> initPlatformState() async {
-    if (!mounted) return;
-    isActive = true;
-
-    controller =
-        AnimationController(duration: Duration(seconds: 1), vsync: this)
-          ..addListener(() {
-            if (isRecording) setState(() {});
-          })
-          ..addStatusListener((status) {
-            if (status == AnimationStatus.completed)
-              controller.reverse();
-            else if (status == AnimationStatus.dismissed) controller.forward();
-          })
-          ..forward();
   }
 
   initilize() async {
@@ -313,25 +201,11 @@ class _TimerScreenState extends State<_TimerScreen>
                 ),
               ),
               Text(
-                (isRecording ? " (Recording)" : "---"),
+                (_isRecording ? " (Recording)" : "---"),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(
-                height: 130,
-              ),
-              CustomPaint(
-                painter: WavePainter(
-                  samples: visibleSamples,
-                  // color: Color.fromRGBO(visibleSamples[0], visibleSamples[400],
-                  //     visibleSamples.last, 1),
-                  color: Colors.blue,
-                  localMax: localMax,
-                  localMin: localMin,
-                  context: context,
                 ),
               ),
               Row(
@@ -339,14 +213,12 @@ class _TimerScreenState extends State<_TimerScreen>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   GestureDetector(
-                      onTap: () {
-                        _controlMicStream();
-                      },
+                      onTap: _isRecording ? stop : start,
                       child: Container(
                           height: 200,
                           width: 200,
                           decoration: BoxDecoration(
-                              color: isRecording ? Colors.green : Colors.grey,
+                              color: _isRecording ? Colors.green : Colors.grey,
                               borderRadius: BorderRadius.circular(100),
                               boxShadow: [
                                 BoxShadow(

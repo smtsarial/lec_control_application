@@ -76,6 +76,7 @@ flutter:
     - assets/images/record.png
     - assets/images/main.png
     - assets/images/add_image_icon.png
+    - assets/images/lightning.png
 
   fonts:
     - family: Roboto

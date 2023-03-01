@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
@@ -104,13 +105,24 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
     super.initState();
   }
 
-  getSharedPref() async {
-    print('getSharedPref');
+  setFavColorsToPref() async {
     await _prefs.then((value) {
-      var _favColors = value.getStringList('favColors');
+      value.setString('favColorsPref', jsonEncode(favColors));
+      print('_favColors' + value.getString('favColorsPref').toString());
+    });
+  }
 
-      print('_favColors');
-      print(_favColors);
+  getSharedPref() async {
+    print('getSharedPref' + jsonEncode(favColors));
+    await _prefs.then((value) {
+      var sat2 = jsonDecode(value.getString('favColorsPref') ?? '');
+
+      if (sat2 != null) {
+        for (int i = 0; i < favColors.length; i++) {
+          favColors[i]['color'] = sat2[i]['color'];
+          favColors[i]['selected'] = sat2[i]['selected'];
+        }
+      }
     });
   }
 
@@ -205,35 +217,35 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
   //add type
   List<Map<String, dynamic>> favColors = [
     {
-      'color': Color(0xffEB5757),
+      'color': '0xffEB5757',
       'selected': false,
     },
     {
-      'color': Color(0xffF2994A),
+      'color': '0xffF2994A',
       'selected': false,
     },
     {
-      'color': Color(0xffF2C94C),
+      'color': '0xffF2C94C',
       'selected': false,
     },
     {
-      'color': Color(0xff219653),
+      'color': '0xff219653',
       'selected': true,
     },
     {
-      'color': Color(0xff6FCF97),
+      'color': '0xff6FCF97',
       'selected': false,
     },
     {
-      'color': Color(0xffBB6BD9),
+      'color': '0xffBB6BD9',
       'selected': false,
     },
     {
-      'color': Color(0xff6FCF97),
+      'color': '0xff6FCF97',
       'selected': false,
     },
     {
-      'color': Color(0xffed1c24),
+      'color': '0xffed1c24',
       'selected': false,
     },
   ];
@@ -242,10 +254,11 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
       pickerColor = color;
       favColors.forEach((element) {
         if (element['selected']) {
-          element['color'] = color;
+          element['color'] = color.value.toString();
         }
       });
     });
+    setFavColorsToPref();
     changeColor(color);
   }
 
@@ -259,7 +272,7 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
     if (widget.viewModel.connectionStatus == DeviceConnectionState.connected ||
         widget.viewModel.connectionStatus == DeviceConnectionState.connecting) {
       print('COLOR CHANGE');
-
+      setFavColorsToPref();
       Snackbar(context, 'Success');
 
       await widget.viewModel.service
@@ -473,8 +486,8 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                   onTap: () {
                     setState(() {
                       favColors[i]['selected'] = true;
-                      pickerColor = favColors[i]['color'];
-                      changeColor(favColors[i]['color']);
+                      pickerColor = Color(int.parse(favColors[i]['color']));
+                      changeColor(Color(int.parse(favColors[i]['color'])));
                       for (var j = 0; j < favColors.length; j++) {
                         if (j != i) {
                           favColors[j]['selected'] = false;
@@ -486,7 +499,7 @@ class _DeviceInteractionTabState extends State<_DeviceInteractionTab> {
                     margin: EdgeInsets.symmetric(horizontal: 5),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(50),
-                      color: favColors[i]['color'],
+                      color: Color(int.parse(favColors[i]['color'])),
                     ),
                     width: 45,
                     height: favColors[i]['selected'] ? 100 : 75,

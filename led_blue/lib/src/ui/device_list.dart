@@ -3,6 +3,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:led_blue/src/ble/ble_scanner.dart';
 import 'package:led_blue/src/helpers/widget/drawer_widget.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../ble/ble_logger.dart';
 import '../helpers/widget/widgets.dart';
@@ -24,24 +25,26 @@ class DeviceListScreen extends StatelessWidget {
           stopScan: bleScanner.stopScan,
           toggleVerboseLogging: bleLogger.toggleVerboseLogging,
           verboseLogging: bleLogger.verboseLogging,
+          passTheAutoLogin: false,
         ),
       );
 }
 
 class _DeviceList extends StatefulWidget {
-  const _DeviceList({
-    required this.scannerState,
-    required this.startScan,
-    required this.stopScan,
-    required this.toggleVerboseLogging,
-    required this.verboseLogging,
-  });
+  const _DeviceList(
+      {required this.scannerState,
+      required this.startScan,
+      required this.stopScan,
+      required this.toggleVerboseLogging,
+      required this.verboseLogging,
+      required this.passTheAutoLogin});
 
   final BleScannerState scannerState;
   final void Function(List<Uuid>) startScan;
   final VoidCallback stopScan;
   final VoidCallback toggleVerboseLogging;
   final bool verboseLogging;
+  final bool passTheAutoLogin;
 
   @override
   _DeviceListState createState() => _DeviceListState();
@@ -50,6 +53,8 @@ class _DeviceList extends StatefulWidget {
 class _DeviceListState extends State<_DeviceList> {
   late TextEditingController _uuidController;
   bool _isScanInProgress = false;
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+  var selectedDeviceId = '';
 
   @override
   void initState() {
@@ -57,6 +62,36 @@ class _DeviceListState extends State<_DeviceList> {
     _uuidController = TextEditingController()
       ..addListener(() => setState(() {}));
     _startScanning();
+    _getSelectedDevice();
+  }
+
+  void _setSavedDevice(String devideId) async {
+    await _prefs.then((value) {
+      value.setString('savedDevice', devideId);
+    });
+    _getSelectedDevice();
+  }
+
+  void _getSelectedDevice() async {
+    await _prefs.then((value) {
+      final device = value.getString('savedDevice');
+      if (device != null) {
+        print('device: $device');
+        setState(() {
+          selectedDeviceId = device;
+        });
+        final deviceFound = widget.scannerState.discoveredDevices
+            .firstWhere((element) => element.id.toString() == device);
+
+        widget.scannerState.discoveredDevices.forEach((element) {
+          print(element.id);
+        });
+        Navigator.push<void>(
+            context,
+            MaterialPageRoute(
+                builder: (_) => DeviceDetailTab(device: deviceFound)));
+      }
+    });
   }
 
   @override
@@ -119,9 +154,17 @@ class _DeviceListState extends State<_DeviceList> {
                             ),
                             child: ListTile(
                               title: Text(device.name),
-                              trailing: Icon(
-                                Icons.flash_on_outlined,
-                                color: Colors.white,
+                              trailing: IconButton(
+                                onPressed: () {
+                                  _setSavedDevice(device.id.toString());
+                                },
+                                icon: Icon(
+                                  Icons.flash_on_outlined,
+                                  color:
+                                      selectedDeviceId == device.id.toString()
+                                          ? Colors.yellow
+                                          : Colors.grey,
+                                ),
                               ),
                               subtitle:
                                   Text("${device.id}\nRSSI: ${device.rssi}"),

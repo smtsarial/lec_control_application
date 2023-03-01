@@ -80,16 +80,18 @@ class _DeviceListState extends State<_DeviceList> {
         setState(() {
           selectedDeviceId = device;
         });
-        final deviceFound = widget.scannerState.discoveredDevices
-            .firstWhere((element) => element.id.toString() == device);
+        Future.delayed(Duration(seconds: 5), () {
+          final deviceFound = widget.scannerState.discoveredDevices
+              .firstWhere((element) => element.id.toString() == device);
 
-        widget.scannerState.discoveredDevices.forEach((element) {
-          print(element.id);
+          widget.scannerState.discoveredDevices.forEach((element) {
+            print(element.id);
+          });
+          Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => DeviceDetailTab(device: deviceFound)));
         });
-        Navigator.push<void>(
-            context,
-            MaterialPageRoute(
-                builder: (_) => DeviceDetailTab(device: deviceFound)));
       }
     });
   }
@@ -98,6 +100,7 @@ class _DeviceListState extends State<_DeviceList> {
   void dispose() {
     widget.stopScan();
     _uuidController.dispose();
+    _getSelectedDevice();
     super.dispose();
   }
 
@@ -154,18 +157,28 @@ class _DeviceListState extends State<_DeviceList> {
                             ),
                             child: ListTile(
                               title: Text(device.name),
-                              trailing: IconButton(
-                                onPressed: () {
-                                  _setSavedDevice(device.id.toString());
-                                },
-                                icon: Icon(
-                                  Icons.flash_on_outlined,
-                                  color:
-                                      selectedDeviceId == device.id.toString()
-                                          ? Colors.yellow
-                                          : Colors.grey,
-                                ),
-                              ),
+                              trailing: _isScanInProgress
+                                  ? Container(
+                                      height: 10,
+                                      width: 10,
+                                      child: CircularProgressIndicator(
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
+                                      ),
+                                    )
+                                  : IconButton(
+                                      onPressed: () {
+                                        _setSavedDevice(device.id.toString());
+                                      },
+                                      icon: Icon(
+                                        Icons.flash_on_outlined,
+                                        color: selectedDeviceId ==
+                                                device.id.toString()
+                                            ? Colors.yellow
+                                            : Colors.grey,
+                                      ),
+                                    ),
                               subtitle:
                                   Text("${device.id}\nRSSI: ${device.rssi}"),
                               onTap: () async {

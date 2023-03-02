@@ -6,14 +6,14 @@ Complete your Daily Challenges. Start with the basics and go further with practi
 
 <table>
   <tr>
-    <td>First Screen Page</td>
-     <td>Holiday Mention</td>
-     <td>Present day in purple and selected day in pink</td>
+    <td>1</td>
+     <td>2</td>
+     <td>3</td>
   </tr>
   <tr>
-    <td><img src="https://github.com/smtsarial/day_challenge/blob/master/github-images/Screenshot_1648397910.png" width=270></td>
-    <td><img src="https://github.com/smtsarial/day_challenge/blob/master/github-images/Screenshot_1648397919.png" width=270></td>
-    <td><img src="https://github.com/smtsarial/day_challenge/blob/master/github-images/Screenshot_1648397921.png" width=270></td>
+    <td><img src="https://github.com/smtsarial/led_blue/blob/main/images/1.jpeg" width=270></td>
+    <td><img src="https://github.com/smtsarial/led_blue/blob/main/images/1.jpeg" width=270></td>
+    <td><img src="https://github.com/smtsarial/led_blue/blob/main/images/1.jpeg" width=270></td>
   </tr> 
   <tr>
     <td><img src="https://github.com/smtsarial/day_challenge/blob/master/github-images/Screenshot_1648397925.png" width=270></td>

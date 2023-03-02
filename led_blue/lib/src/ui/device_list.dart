@@ -55,6 +55,8 @@ class _DeviceListState extends State<_DeviceList> {
   bool _isScanInProgress = false;
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   var selectedDeviceId = '';
+  bool stopAllFunctions = false;
+  bool autoSearchActive = false;
 
   @override
   void initState() {
@@ -74,24 +76,30 @@ class _DeviceListState extends State<_DeviceList> {
 
   void _getSelectedDevice() async {
     await _prefs.then((value) {
-      final device = value.getString('savedDevice');
-      if (device != null) {
-        print('device: $device');
-        setState(() {
-          selectedDeviceId = device;
-        });
-        Future.delayed(Duration(seconds: 5), () {
-          final deviceFound = widget.scannerState.discoveredDevices
-              .firstWhere((element) => element.id.toString() == device);
-
-          widget.scannerState.discoveredDevices.forEach((element) {
-            print(element.id);
+      final bool autoSearchActive = value.getBool('autoSearchActive') ?? false;
+      setState(() {
+        this.autoSearchActive = autoSearchActive;
+      });
+      if (autoSearchActive) {
+        final device = value.getString('savedDevice');
+        if (device != null) {
+          print('device: $device');
+          setState(() {
+            selectedDeviceId = device;
           });
-          Navigator.push<void>(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => DeviceDetailTab(device: deviceFound)));
-        });
+          Future.delayed(Duration(seconds: 5), () {
+            final deviceFound = widget.scannerState.discoveredDevices
+                .firstWhere((element) => element.id.toString() == device);
+
+            widget.scannerState.discoveredDevices.forEach((element) {
+              print(element.id);
+            });
+            Navigator.push<void>(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => DeviceDetailTab(device: deviceFound)));
+          });
+        }
       }
     });
   }
@@ -101,6 +109,7 @@ class _DeviceListState extends State<_DeviceList> {
     widget.stopScan();
     _uuidController.dispose();
     _getSelectedDevice();
+
     super.dispose();
   }
 
@@ -157,16 +166,30 @@ class _DeviceListState extends State<_DeviceList> {
                             ),
                             child: ListTile(
                               title: Text(device.name),
-                              trailing: _isScanInProgress
-                                  ? Container(
-                                      height: 10,
-                                      width: 10,
-                                      child: CircularProgressIndicator(
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Colors.white),
-                                      ),
-                                    )
+                              trailing: autoSearchActive
+                                  ? _isScanInProgress
+                                      ? Container(
+                                          height: 10,
+                                          width: 10,
+                                          child: CircularProgressIndicator(
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
+                                          ),
+                                        )
+                                      : IconButton(
+                                          onPressed: () {
+                                            _setSavedDevice(
+                                                device.id.toString());
+                                          },
+                                          icon: Icon(
+                                            Icons.flash_on_outlined,
+                                            color: selectedDeviceId ==
+                                                    device.id.toString()
+                                                ? Colors.yellow
+                                                : Colors.grey,
+                                          ),
+                                        )
                                   : IconButton(
                                       onPressed: () {
                                         _setSavedDevice(device.id.toString());
@@ -182,12 +205,17 @@ class _DeviceListState extends State<_DeviceList> {
                               subtitle:
                                   Text("${device.id}\nRSSI: ${device.rssi}"),
                               onTap: () async {
-                                widget.stopScan();
-                                await Navigator.push<void>(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            DeviceDetailTab(device: device)));
+                                if (!_isScanInProgress) {
+                                  widget.stopScan();
+                                  setState(() {
+                                    stopAllFunctions = true;
+                                  });
+                                  await Navigator.push<void>(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              DeviceDetailTab(device: device)));
+                                }
                               },
                             ),
                           ),

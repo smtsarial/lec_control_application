@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/container.dart';
 import 'package:flutter/src/widgets/framework.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,6 +13,15 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _autoSearch = false;
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+
+  @override
+  void initState() {
+    _initializeAutoSearch();
+
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,7 +45,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   CupertinoSwitch(
                     value: _autoSearch,
-                    onChanged: (value) {
+                    onChanged: (value) async {
+                      //set shared preferences here
+                      final SharedPreferences prefs = await _prefs;
+                      prefs.setBool('autoSearchActive', value);
+
                       setState(() {
                         _autoSearch = value;
                       });
@@ -55,5 +69,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  void _initializeAutoSearch() async {
+    _prefs.then((SharedPreferences prefs) async {
+      setState(() {
+        _autoSearch = prefs.getBool('autoSearchActive') ?? false;
+      });
+    });
   }
 }

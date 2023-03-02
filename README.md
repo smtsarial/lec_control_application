@@ -1,9 +1,6 @@
 # Flutter Reactive Ble Connection LED app 
 
 
-## Getting Started
-
-
 <table>
   <tr>
     <td>1</td>
